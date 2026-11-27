@@ -179,3 +179,42 @@ export function seasonPlan({ goal = '5k', date = '', unit = 'mi', current = 15, 
   }
   return { weeks, raceWeek, peak: Math.round(peak), unit };
 }
+
+// ---------------------------------------------------------------- from your log
+const dayMs = 864e5, dOf = iso => new Date(iso + 'T12:00:00');
+/** Distance in the last 7 days against the weekly average of the last 28. No magic threshold: a guide, not a prediction. */
+export function loadRatio(acts, today = new Date()) {
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
+  const within = n => acts.filter(a => { const k = (t - dOf(a.date)) / dayMs; return k >= 0 && k < n; }).reduce((s, a) => s + a.m, 0);
+  const acute = within(7), chronic = within(28) / 4, weeks = new Set(acts.map(a => weekKey(dOf(a.date)))).size;
+  return { acute, chronic, ratio: chronic > 0 ? acute / chronic : null, enough: weeks >= 3 };
+}
+/** Your best timed effort of at least 1.5 km in the last `days` days, as a VDOT. Easy runs understate fitness, so the best one counts. */
+export function bestEffort(acts, vdotFn, today = new Date(), days = 42) {
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
+  return acts.filter(a => a.s > 0 && a.m >= 1500 && (t - dOf(a.date)) / dayMs < days && (t - dOf(a.date)) >= 0)
+    .map(a => ({ a, v: vdotFn(a.m, a.s) })).filter(x => x.v > 15 && x.v < 90).sort((x, y) => y.v - x.v)[0] || null;
+}
+
+// ---------------------------------------------------------------- fueling
+/** Sweat loss = mass before − mass after + fluid drunk; rate = loss / hours (NATA 2017). Inputs in kg, litres, hours. */
+export const sweatRate = ({ pre, post, fluid = 0, hours }) => (pre > 0 && post > 0 && hours > 0 ? (pre - post + fluid) / hours : null);
+/**
+ * Race fueling. Carbs: none needed under about 75 minutes; 30 to 60 g an hour for 1 to 2.5 hours; up to 90 g an hour,
+ * from glucose plus fructose, beyond 2.5 hours (Jeukendrup 2014; Burke et al. 2011).
+ * Fluids: aim to keep losses under 2% of body mass (ACSM 2007), never more than you sweat.
+ */
+export function fuelPlan({ hours, weightKg = 0, rate = null, gelG = 25 }) {
+  const carbs = hours < 1.25 ? 0 : hours <= 2.5 ? (hours < 1.75 ? 30 : 45) : 75;
+  const carbsMax = hours < 1.25 ? 0 : hours <= 2.5 ? 60 : 90;
+  const total = Math.round(carbs * Math.max(0, hours - 0.25));
+  const gels = carbs ? Math.ceil(total / gelG) : 0;
+  const first = 40 * 60, gap = gels > 1 ? (hours * 3600 - 15 * 60 - first) / (gels - 1) : 0;
+  const times = gels ? [...Array(gels)].map((_, i) => Math.round(first + i * gap)) : [];
+  let fluid = null;
+  if (rate && weightKg) {
+    const allowed = weightKg * 0.02 / hours;  // litres an hour you can lose and stay under 2%
+    fluid = { rate, perHour: Math.max(0, Math.min(rate, rate - allowed)), lossIfNone: rate * hours / weightKg * 100 };
+  }
+  return { carbs, carbsMax, total, gels, times, fluid };
+}

@@ -11,6 +11,9 @@ Put in one or more race PRs, from 800 m to the marathon, and Oval shows:
 - **Your PR profile**: which PR is really your best, and whether you lean toward speed or endurance
 - **Six pages** (Your times, Rankings, Ghost race, Race plan, Training, The data) under tabs at the top
 - **Training plan from a few questions**: goal, race date, current mileage, longest run, days, long-run day, experience and injuries. Builds every week to race day with easier weeks and a two-week taper (Bosquet et al. 2007), whole-number distances, about 80% easy (Seiler) with Daniels' limits on long runs and hard sessions. Tick off runs and log actual distance; the log stays in your browser. Warm-up, cool-down stretches and a twice-weekly strength routine
+- **Import from your watch**: GPX and TCX files (Garmin, Coros, Apple Health, Strava) and Strava's bulk-export activities.csv, parsed in the browser, with splits and elevation gain; duplicates skipped
+- **Fitness and load from your log**: VDOT from your best recent run, and your last 7 days against your 4-week average; the plan tells you to repeat or ease off a week based on what you actually ran
+- **Race fueling**: carbs and gels by the hour (Burke et al. 2011; Jeukendrup 2014) and a fluid target from a sweat test (NATA 2017), keeping losses under 2% of body weight (ACSM 2007)
 - **Log**: record runs by hand (distance, time, type, feel, notes); streaks, weekly totals, a 12-week chart and distance milestones; logged runs tick off the plan, and a logged race faster than your PR offers to update your races
 - **Ghost race** at any distance with real college runners per event and your friends
 - **Age grade and Boston qualifying**: add your age and sex for your age-graded percentage (2025 road factors by Alan Jones, CC0) and how far you are from a 2027/2028 Boston qualifier
@@ -29,6 +32,7 @@ Everything recomputes as you type, and the URL holds your inputs so a result can
 | `web/app.js` | The page: inputs, rankings, the ghost race (canvas), charts (SVG) |
 | `web/plan.js` | The race plan: goal time with adjustments for distance beyond your longest race, course, heat and boldness; checkpoints; phases; race-morning notes |
 | `web/training.js` | Weekly plan generator, routines, week keys |
+| `web/importer.js` | GPX, TCX and Strava CSV parsing, distance, moving time, elevation gain, splits |
 | `test/` | Checks the model against Daniels' published tables, percentile math, split plans, and that the data is sane |
 
 Workflows: `data` rebuilds the distributions monthly; `site` runs the tests, builds the page and publishes it on every push.

@@ -1,6 +1,7 @@
 import { DISTANCES, byId, WORLD_RECORDS, vdot, predict, riegel, trainingPaces, fasterThan, timeAt, heatSlowdown, fmt, parseTime } from './model.js';
 import { planGoal, checkpoints, phases, raceDay } from './plan.js';
-import { weekPlan, seasonPlan, ROUTINES, weekKey } from './training.js';
+import { weekPlan, seasonPlan, ROUTINES, weekKey, loadRatio, bestEffort, sweatRate, fuelPlan } from './training.js';
+import { parseTrack, parseStrava, isDuplicate } from './importer.js';
 
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); e.innerHTML = html; return e; };
@@ -473,8 +474,15 @@ function renderTraining(A) {
   $('#wk-range').textContent = `Week ${S.wk.offset + 1} of ${n}, ${md(dd(0))} to ${md(dd(6))}`;
   $('#wk-prev').disabled = S.wk.offset === 0; $('#wk-next').disabled = S.wk.offset === n - 1;
   $('#wk-sum').innerHTML = `<b>${w.phase}</b>: ${plan.total.toFixed(0)} ${u}, about ${Math.round(plan.easyShare * 100)}% easy.`;
-  $('#wk-note').hidden = !plan.note; $('#wk-note').textContent = plan.note;
   const acts = store.get('oval-activities', []), U = UM();
+  const notes = plan.note ? [plan.note] : [];
+  if (w.start === weekKey() && S.wk.offset > 0) {
+    const prev = P.weeks[S.wk.offset - 1], ran = acts.filter(x => weekKey(new Date(x.date + 'T12:00:00')) === prev.start).reduce((s, x) => s + x.m, 0) / U;
+    if (acts.length && ran < prev.volume * 0.7) notes.push(`Last week you logged ${ran.toFixed(1)} of ${prev.volume} ${u}. If you missed runs, repeat last week rather than building on it.`);
+    else if (ran > prev.volume * 1.25) notes.push(`Last week you logged ${ran.toFixed(1)} ${u}, well over the ${prev.volume} planned. Keep this week easy and on plan.`);
+  }
+  const LR = loadRatio(acts); if (w.start === weekKey() && LR.enough && LR.ratio > 1.5) notes.push(`Your last 7 days are ${LR.ratio.toFixed(1)}× your 4-week average. Ease off for a few days before adding more.`);
+  $('#wk-note').hidden = !notes.length; $('#wk-note').textContent = notes.join(' ');
   const actualOn = iso => acts.filter(x => x.date === iso).reduce((s, x) => s + x.m, 0) / U;
   let done = 0, ticked = 0;
   $('#week').innerHTML = plan.days.map((d, i) => { const iso = isoDay(dd(i)), act = actualOn(iso); if (act) { done += act; if (d.type !== 'rest') ticked++; }
@@ -506,6 +514,13 @@ function renderLog() {
   const trips = [[26.2188, 'marathons'], [382, 'of the drive from San Francisco to Los Angeles'], [2451, 'of the way across the United States'], [24901, 'of the way around the Earth']];
   const big = trips.filter(([d]) => allMi >= d * 0.05).pop();
   $('#lg-mile').innerHTML = !acts.length ? '' : `${all.toFixed(1)} ${u} in all, across ${acts.length} ${acts.length === 1 ? 'run' : 'runs'}. Longest: ${longest.toFixed(1)} ${u}.` + (big ? (big[1] === 'marathons' ? ` That is ${(allMi / big[0]).toFixed(1)} marathons.` : ` That is ${Math.round(allMi / big[0] * 100)}% ${big[1]}.`) : '');
+  // fitness and load from the log
+  const L = loadRatio(acts), BE = bestEffort(acts, vdot), A0 = analyse(), fit = [];
+  if (BE) fit.push(['', `<b>VDOT ${BE.v.toFixed(1)}</b><span>fitness from your best run in the last 6 weeks (${(BE.a.m / U).toFixed(1)} ${u} in ${fmt(BE.a.s)} on ${md(new Date(BE.a.date + 'T12:00:00'))})${A0 ? `. Your races say ${A0.V.toFixed(1)}.` : ''}</span>`]);
+  if (L.enough && L.ratio != null) { const r = L.ratio, warn = r > 1.5;
+    fit.push([warn ? 'warn' : '', `<b>${r.toFixed(2)}×</b><span>your last 7 days (${(L.acute / U).toFixed(1)} ${u}) against your 4-week average (${(L.chronic / U).toFixed(1)} ${u}). ${warn ? 'A big jump. Consider an easier few days: sudden spikes in running are a common route to injury.' : r < 0.8 ? 'Lighter than usual, which is fine for a recovery or taper week.' : 'A steady, sensible load.'}</span>`]); }
+  else if (acts.length) fit.push(['', `<b>Building</b><span>Log about three weeks of runs and Oval will compare each week with your recent average.</span>`]);
+  $('#lg-fit').hidden = !fit.length; $('#lg-fit').innerHTML = fit.map(([c, h]) => `<div class="${c}">${h}</div>`).join('');
   const pr = S.newPR; $('#lg-pr').hidden = !pr;
   if (pr) $('#lg-pr').innerHTML = `<b>New ${byId(pr.id).label} PR: ${fmt(pr.t)}.</b> ${pr.old ? `That beats your ${fmt(pr.old)}.` : 'Oval does not have a time for this distance yet.'} <button type="button" class="btn" id="lg-pr-add">Add to your races</button> <button type="button" class="linkbtn quiet" id="lg-pr-no">Not now</button>`;
   // last 12 weeks
@@ -518,7 +533,29 @@ function renderLog() {
     return `<li><span class="rd"><b>${new Date(x.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</b><small>${TYPE_LABEL[x.type] || x.type}</small></span>
       <span class="rn">${x.notes ? esc(x.notes) : ''}${x.feel ? `<small>Felt ${x.feel}</small>` : ''}</span>
       <span class="rv"><b>${d.toFixed(1)} ${u}</b>${x.s ? `<small>${fmt(x.s)}${d ? `, ${fmt(x.s / d)}/${u}` : ''}</small>` : ''}</span>
-      <button type="button" class="rm" data-del="${x.id}" aria-label="Delete this run">&times;</button></li>`; }).join('');
+      <button type="button" class="rm" data-del="${x.id}" aria-label="Delete this run">&times;</button>${x.splits && x.splits.length ? `<details><summary>${x.splits.length} splits${x.gain ? `, ${Math.round(x.gain * (u === 'mi' ? 3.28084 : 1))} ${u === 'mi' ? 'ft' : 'm'} climb` : ''}</summary><ol class="splits">${(() => { const k = (x.splitUnit || U) / U, best = Math.min(...x.splits), flat = best === Math.max(...x.splits); return x.splits.map((t, i) => `<li class="${t === best && !flat ? 'fast' : ''}"><small>${x.splitUnit && Math.abs(x.splitUnit - U) > 1 ? (x.splitUnit > 1500 ? 'mi' : 'km') : u} ${i + 1}</small>${fmt(t / k)}</li>`).join(''); })()}</ol></details>` : ''}</li>`; }).join('');
+}
+
+// ------------------------------------------------------------------ race fueling
+function renderFuel(A) {
+  const us = (S.fuelUnits || 'us') === 'us';
+  $('#fu-units').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === (us ? 'us' : 'metric')));
+  document.querySelectorAll('.fu-wu').forEach(e => e.textContent = us ? 'lb' : 'kg'); document.querySelectorAll('.fu-vu').forEach(e => e.textContent = us ? 'oz' : 'ml');
+  const race = byId($('#fu-race').value), auto = predict(A.V, race.m);
+  if (!$('#fu-time').value || $('#fu-time').dataset.auto === '1') { $('#fu-time').value = fmt(auto); $('#fu-time').dataset.auto = '1'; }
+  const T = parseTime($('#fu-time').value) || auto, hours = T / 3600;
+  const kg = x => (us ? x * 0.45359237 : x), L = x => (us ? x * 0.0295735 : x / 1000);
+  const pre = kg(+$('#fu-pre').value), post = kg(+$('#fu-post').value), rate = sweatRate({ pre, post, fluid: L(+$('#fu-drank').value || 0), hours: (+$('#fu-min').value || 0) / 60 });
+  const F = fuelPlan({ hours, weightKg: pre || 0, rate: rate > 0 && rate < 4 ? rate : null });
+  const vol = l => (us ? `${Math.round(l / 0.0295735)} oz` : `${Math.round(l * 1000)} ml`);
+  let h = `<h3>${race.label} in ${fmt(T)}</h3><div class="big3">
+    <div><b>${F.carbs ? `${F.carbs} g` : 'None'}</b><span>${F.carbs ? `carbs an hour (up to ${F.carbsMax} g if your stomach is trained)` : 'carbs needed during a race this short. Eat a normal carb-rich breakfast 2 to 3 hours before.'}</span></div>
+    <div><b>${F.gels || '–'}</b><span>${F.gels ? `gels of about 25 g (${F.total} g in all)` : 'gels'}</span></div>
+    <div><b>${F.fluid ? `${vol(F.fluid.perHour)}/h` : 'To thirst'}</b><span>${F.fluid ? `to drink, from a sweat rate of ${vol(F.fluid.rate)} an hour` : 'Add a sweat test for a fluid target.'}</span></div></div>`;
+  if (F.gels) h += `<p class="sub">Take them at:</p><ol class="gels">${F.times.map(t => `<li>${fmt(t)}</li>`).join('')}</ol>`;
+  if (F.fluid) h += `<p class="sub">Drinking nothing, you would lose about ${F.fluid.lossIfNone.toFixed(1)}% of your body weight. The target keeps the loss under 2%, the point where performance in the heat starts to suffer, without drinking more than you sweat.</p>`;
+  h += `<p class="fine">Carbs: 30 to 60 g an hour for races of 1 to 2.5 hours, up to 90 g an hour (glucose plus fructose) beyond that (Burke et al. 2011; Jeukendrup 2014). Sweat rate = weight before − weight after + fluid drunk, divided by hours (NATA 2017). Practice your race fueling in long runs first.</p>`;
+  $('#fuelout').innerHTML = h;
 }
 
 const lower = l => (/^(Half marathon|Marathon|Mile)$/.test(l) ? l.toLowerCase() : l);
@@ -649,7 +686,7 @@ function update() {
   TABS.forEach(t => { if (t !== 'me' && t !== 'log') $(`#tab-${t}`).setAttribute('aria-disabled', !ready); });
   renderLog();
   if (!ready) { if (S.tab !== 'me') showTab('me'); return; }
-  renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderRacePlan(A); renderTraining(A); renderData(A);
+  renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderRacePlan(A); renderTraining(A); renderFuel(A); renderData(A);
   const key = `${A.best.d.id}:${A.best.s}:${S.sex}:${S.ghostDist}:${JSON.stringify(S.friends)}`;
   if (key !== lastKey) { lastKey = key; setupGhost(A); }
 }
@@ -674,6 +711,22 @@ function wire() {
     err.textContent = ''; S.friends.push({ name, d: d.id, t }); saveFriends(S.friends); $('#gh-fname').value = $('#gh-ftime').value = ''; update(); };
   $('#gh-friends').onclick = e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.friends.splice(+b.dataset.rm, 1); saveFriends(S.friends); update(); };
   $('#card').onclick = downloadCard;
+  const importFiles = async files => { const acts = store.get('oval-activities', []), U = UM(); let added = 0, dup = 0, bad = 0;
+    for (const f of files) { const text = await f.text(), name = f.name.toLowerCase(); let list = [];
+      try { if (name.endsWith('.csv')) list = parseStrava(text); else { const r = parseTrack(text, U); if (r) list = [{ ...r, splitUnit: U }]; } } catch { list = []; }
+      if (!list.length) bad++;
+      for (const r of list) { if (isDuplicate(acts, r)) { dup++; continue; } acts.push({ id: Date.now() + added, type: r.m > 25000 ? 'long' : 'easy', feel: null, ...r }); added++; } }
+    store.set('oval-activities', acts);
+    $('#lg-imp').textContent = `Added ${added} ${added === 1 ? 'run' : 'runs'}.${dup ? ` Skipped ${dup} already in your log.` : ''}${bad ? ` ${bad} ${bad === 1 ? 'file' : 'files'} had no run data.` : ''}`;
+    update(); renderLog(); };
+  $('#lg-file').onchange = e => importFiles([...e.target.files]).then(() => { e.target.value = ''; });
+  const drop = $('#lg-drop');
+  ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => importFiles([...e.dataTransfer.files]));
+  $('#fuelform').oninput = e => { if (e.target.id === 'fu-time') e.target.dataset.auto = '0'; update(); };
+  $('#fu-race').onchange = () => { $('#fu-time').dataset.auto = '1'; update(); };
+  $('#fu-units').onclick = e => { const b = e.target.closest('button'); if (b) { S.fuelUnits = b.dataset.v; update(); } };
   document.querySelectorAll('.subtabs').forEach(bar => bar.onclick = e => { const b = e.target.closest('[role=tab]'); if (b) selectSub(b); });
   $('#wk-prev').onclick = () => { S.wk.offset--; update(); };
   $('#wk-next').onclick = () => { S.wk.offset++; update(); };

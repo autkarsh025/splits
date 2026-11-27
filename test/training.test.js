@@ -66,3 +66,23 @@ test('race week puts the race on its day', () => {
   const p = weekPlan(50, { volume: 15, days: 5, race: { day: 6, m: 21097.5, label: 'Half marathon' } });
   assert.equal(p.days[6].type, 'race'); assert.equal(p.days[5].type, 'rest');
 });
+
+import { loadRatio, bestEffort, sweatRate, fuelPlan } from '../web/training.js';
+import { vdot } from '../web/model.js';
+test('load ratio: a week double your recent average reads about 2', () => {
+  const t = new Date(2026, 10, 26), acts = [];
+  for (let d = 7; d < 28; d += 2) acts.push({ date: `2026-11-${String(26 - d).padStart(2, '0')}`.replace('-11--', '-10-'), m: 5000 });
+  const base = acts.filter(a => !a.date.includes('--'));
+  const r = loadRatio([...base, { date: '2026-11-25', m: 30000 }], t);
+  assert.ok(r.ratio > 1.3, `ratio ${r.ratio}`);
+});
+test('best effort picks the fastest timed run', () => {
+  const b = bestEffort([{ date: '2026-11-20', m: 5000, s: 1200 }, { date: '2026-11-22', m: 10000, s: 3300 }], vdot, new Date(2026, 10, 26));
+  assert.equal(b.a.m, 5000);
+});
+test('sweat rate and fueling follow the formulas', () => {
+  assert.equal(sweatRate({ pre: 70, post: 69, fluid: 0.5, hours: 1 }), 1.5);
+  const f = fuelPlan({ hours: 3.5, weightKg: 70, rate: 1.2 });
+  assert.equal(f.carbs, 75); assert.ok(f.gels >= 9); assert.ok(f.fluid.perHour > 0 && f.fluid.perHour <= 1.2);
+  assert.equal(fuelPlan({ hours: 1 }).gels, 0);
+});

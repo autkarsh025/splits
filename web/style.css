@@ -335,3 +335,26 @@ body[data-state=ready] .teaser { display: none }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; margin: 0 0 30px; padding: 16px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule) }
 .facts b { display: block; font-size: 26px; font-weight: 700; color: var(--track-ink); font-variation-settings: "wdth" 110; font-variant-numeric: tabular-nums }
 .facts span { font-size: 14px; color: var(--ink2) }
+
+/* import */
+.import { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--rule) }
+.import h3 { font-size: 17px; margin-bottom: 4px }
+.drop { display: grid; place-items: center; border: 1.5px dashed var(--field); border-radius: 10px; padding: 18px 12px; cursor: pointer; background: var(--paper); text-align: center; font-size: 15px; font-weight: 600; color: var(--ink2) }
+.drop:hover, .drop.over { border-color: var(--track); color: var(--ink) } .drop input { position: absolute; opacity: 0; width: 1px; height: 1px }
+/* fitness card */
+.fitcard { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 24px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 10px; margin-bottom: 16px }
+.fitcard b { display: block; font-size: 22px; font-weight: 700; font-variation-settings: "wdth" 110 } .fitcard span { font-size: 14px; color: var(--ink2) }
+.fitcard .warn b { color: var(--track-ink) }
+/* run details */
+.runs details { grid-column: 1 / -1; margin-top: -4px } .runs summary { cursor: pointer; font-size: 14px; color: var(--track-ink); font-weight: 600; width: fit-content }
+.splits { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; padding: 0; list-style: none }
+.splits li { display: block !important; border: 1px solid var(--rule); border-radius: 6px; padding: 3px 8px; font-size: 13px; font-variant-numeric: tabular-nums; grid-template-columns: none !important }
+.splits li small { color: var(--mute); margin-right: 4px; display: inline }
+.splits li.fast { border-color: var(--track) }
+/* fuel */
+.fuellayout { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); align-items: start }
+.fuellayout .planform { position: static } .fuellayout .pair { margin-top: 8px } .fuellayout .seg { margin-top: 10px; background: var(--paper) }
+#fuelout h3 { font-size: 19px; margin: 0 0 8px } #fuelout .big3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px }
+#fuelout .big3 b { display: block; font-size: 30px; font-weight: 700; font-variation-settings: "wdth" 112 } #fuelout .big3 span { font-size: 14px; color: var(--ink2) }
+.gels { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 6px 0 18px } .gels li { border: 1px solid var(--field); border-radius: 99px; padding: 4px 12px; font-size: 14px; font-variant-numeric: tabular-nums }
+@media (max-width: 900px) { .fuellayout { grid-template-columns: minmax(0, 1fr) } #fuelout .big3 { grid-template-columns: minmax(0, 1fr) } }

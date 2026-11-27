@@ -210,6 +210,7 @@
       <h2>Training</h2>
       <div class="subtabs" role="tablist" aria-label="Training">
         <button role="tab" aria-selected="true" data-sub="tr-week">Your plan</button>
+        <button role="tab" aria-selected="false" data-sub="tr-fuel">Race fueling</button>
         <button role="tab" aria-selected="false" data-sub="tr-stretch">Stretches and strength</button>
         <button role="tab" aria-selected="false" data-sub="tr-paces">Paces</button>
         <button role="tab" aria-selected="false" data-sub="tr-goal">Goal finder</button>
@@ -234,6 +235,24 @@
           <ol class="week" id="week"></ol>
           <div class="wkfoot"><span id="wk-done"></span><button type="button" class="linkbtn" data-go="log">Open your log</button></div>
           <p class="fine">Built on published coaching research: about 80% easy running with one or two hard sessions (Seiler); long runs at most 25 to 30% of the week and per-session limits for hard work (Daniels); long runs no more than about 10% over your longest in the past month (Frandsen); and a two-week taper that cuts volume about 40 to 55% but keeps the hard sessions (Bosquet et al. 2007). Runs you add in the Log tab tick off the plan.</p>
+        </div>
+      </div>
+
+      <div class="subpanel" id="tr-fuel" role="tabpanel" hidden>
+        <div class="fuellayout">
+          <form class="planform" id="fuelform" autocomplete="off" aria-label="Fueling settings">
+            <h2>Race fueling</h2>
+            <p class="hint">How much to eat and drink in your race, from your finish time and a sweat test you can do on any training run.</p>
+            <label class="field">Race<select id="fu-race"><option value="10k">10K</option><option value="half">Half marathon</option><option value="marathon" selected>Marathon</option></select></label>
+            <label class="field">Expected finish time<input id="fu-time" data-time inputmode="numeric" placeholder="h:mm:ss"></label>
+            <fieldset class="field"><legend>Sweat test <span class="opt">(optional)</span></legend>
+              <small>Weigh yourself before and after a one-hour run at race pace and temperature, and note what you drank.</small>
+              <div class="pair"><label>Before<span class="vol"><input id="fu-pre" type="number" step="0.1" inputmode="decimal"><span class="fu-wu">lb</span></span></label><label>After<span class="vol"><input id="fu-post" type="number" step="0.1" inputmode="decimal"><span class="fu-wu">lb</span></span></label></div>
+              <div class="pair"><label>Drank<span class="vol"><input id="fu-drank" type="number" step="1" inputmode="numeric" value="0"><span class="fu-vu">oz</span></span></label><label>Run length<span class="vol"><input id="fu-min" type="number" step="1" inputmode="numeric" value="60"><span>min</span></span></label></div>
+              <div class="seg" id="fu-units"><button type="button" data-v="us">lb, oz</button><button type="button" data-v="metric">kg, ml</button></div>
+            </fieldset>
+          </form>
+          <article id="fuelout" aria-live="polite"></article>
         </div>
       </div>
 
@@ -301,9 +320,16 @@
         <fieldset class="field"><legend>How did it feel?</legend><div class="seg" id="lg-feel"><button type="button" data-v="great">Great</button><button type="button" data-v="good">Good</button><button type="button" data-v="ok">OK</button><button type="button" data-v="tough">Tough</button><button type="button" data-v="pain">Pain</button></div></fieldset>
         <label class="field"><span>Notes <span class="opt">(optional)</span></span><input id="lg-notes" maxlength="140" placeholder="Route, shoes, how the workout went"></label>
         <div class="gorow"><button type="submit" class="btn">Save run</button><span class="goerr" id="lg-err" role="alert"></span></div>
+        <div class="import">
+          <h3>Import from your watch</h3>
+          <p class="hint">Drop in GPX or TCX files from Garmin, Coros, Apple Health or Strava, or Strava&rsquo;s <b>activities.csv</b> from Settings, My Account, Download your data. Runs you already logged are skipped.</p>
+          <label class="drop" id="lg-drop"><input type="file" id="lg-file" accept=".gpx,.tcx,.csv" multiple><span>Choose files or drop them here</span></label>
+          <p class="fine" id="lg-imp" role="status"></p>
+        </div>
       </form>
       <div class="logout">
         <div class="prbanner" id="lg-pr" hidden></div>
+        <div class="fitcard" id="lg-fit" hidden></div>
         <div class="logstats" id="lg-stats"></div>
         <p class="milestone" id="lg-mile"></p>
         <h3>Last 12 weeks</h3>
