@@ -52,7 +52,7 @@ function renderBib() {
   S.prs.forEach(([d, t], i) => {
     const row = el('div', { class: 'pr' });
     const sel = el('select', { 'aria-label': 'Distance' }, DISTANCES.map(x => `<option value="${x.id}"${x.id === d ? ' selected' : ''}>${x.label}</option>`).join(''));
-    const inp = el('input', { value: t, inputmode: 'numeric', 'aria-label': 'Time (h:mm:ss or m:ss)', placeholder: 'm:ss' });
+    const inp = el('input', { value: t, inputmode: 'numeric', 'data-time': '', 'aria-label': 'Time (h:mm:ss or m:ss)', placeholder: 'm:ss' });
     const rm = el('button', { type: 'button', class: 'rm', 'aria-label': 'Remove this PR', title: 'Remove' }, '&times;');
     sel.onchange = () => { S.prs[i][0] = sel.value; update(); };
     const err = el('span', { class: 'err' }, 'Use minutes and seconds, like 16:09, or h:mm:ss.'); err.hidden = true;
@@ -505,6 +505,13 @@ function renderRacePlan(A) {
 }
 
 // ------------------------------------------------------------------ tabs
+/** Format digits as a race time while typing: 428 -> 4:28, 1609 -> 16:09, 11900 -> 1:19:00. */
+function autoTime(el) {
+  const dig = el.value.replace(/\D/g, '').replace(/^0+(?=\d{3})/, '').slice(0, 6);
+  el.value = dig.length > 4 ? `${dig.slice(0, -4)}:${dig.slice(-4, -2)}:${dig.slice(-2)}` : dig.length > 2 ? `${dig.slice(0, -2)}:${dig.slice(-2)}` : dig;
+}
+// capture phase, so the formatted value is what every other handler sees
+document.addEventListener('input', e => { if (e.target.matches('input[data-time]')) autoTime(e.target); }, true);
 const isReady = () => S.submitted && !!analyse();
 function selectSub(btn) {
   const bar = btn.parentElement;

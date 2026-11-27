@@ -258,6 +258,8 @@ main { flex: 1 0 auto } .foot { flex: none }
 
 /* submit */
 .gorow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 16px }
+.entry .gorow { flex-direction: column; justify-content: center; margin-top: 20px } .entry .go { min-width: 260px }
+.entry .examples { justify-content: center }
 .go { padding: 12px 22px; font-size: 17px }
 .goerr { color: var(--track-ink); font-size: 15px }
 body[data-state=ready] .entry .gorow { display: none }
