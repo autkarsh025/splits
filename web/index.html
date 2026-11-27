@@ -247,8 +247,8 @@
             <label class="field">Expected finish time<input id="fu-time" data-time inputmode="numeric" placeholder="h:mm:ss"></label>
             <fieldset class="field"><legend>Sweat test <span class="opt">(optional)</span></legend>
               <small>Weigh yourself before and after a one-hour run at race pace and temperature, and note what you drank.</small>
-              <div class="pair"><label>Before<span class="vol"><input id="fu-pre" type="number" step="0.1" inputmode="decimal"><span class="fu-wu">lb</span></span></label><label>After<span class="vol"><input id="fu-post" type="number" step="0.1" inputmode="decimal"><span class="fu-wu">lb</span></span></label></div>
-              <div class="pair"><label>Drank<span class="vol"><input id="fu-drank" type="number" step="1" inputmode="numeric" value="0"><span class="fu-vu">oz</span></span></label><label>Run length<span class="vol"><input id="fu-min" type="number" step="1" inputmode="numeric" value="60"><span>min</span></span></label></div>
+              <div class="pair"><label>Before<span class="vol"><input id="fu-pre" type="number" step="any" inputmode="decimal"><span class="fu-wu">lb</span></span></label><label>After<span class="vol"><input id="fu-post" type="number" step="any" inputmode="decimal"><span class="fu-wu">lb</span></span></label></div>
+              <div class="pair"><label>Drank<span class="vol"><input id="fu-drank" type="number" step="any" inputmode="numeric" value="0"><span class="fu-vu">oz</span></span></label><label>Run length<span class="vol"><input id="fu-min" type="number" step="any" inputmode="numeric" value="60"><span>min</span></span></label></div>
               <div class="seg" id="fu-units"><button type="button" data-v="us">lb, oz</button><button type="button" data-v="metric">kg, ml</button></div>
             </fieldset>
           </form>
@@ -273,7 +273,7 @@
         <div id="goals" class="narrow">
           <p class="sub">Pick how much of the marathon field you want to beat. Oval works out the times that take at every distance, and how far you are from each.</p>
           <label class="goal">Faster than <output id="goal-out">90%</output> of <span id="goal-field">marathoners</span>
-            <input id="goal" type="range" min="50" max="99.9" step="0.1" value="90"></label>
+            <input id="goal" type="range" min="50" max="99.9" step="any" value="90"></label>
           <p class="goalhead" id="goal-head"></p>
           <table class="results" id="goaltable"><thead><tr><th>Distance</th><th class="r">Goal</th><th class="r">You now</th><th class="r">To cut</th></tr></thead><tbody></tbody></table>
         </div>
@@ -314,7 +314,7 @@
         <label class="field">Date<input id="lg-date" type="date" required></label>
         <label class="field">Type<select id="lg-type"><option value="easy">Easy run</option><option value="long">Long run</option><option value="quality">Workout</option><option value="race">Race</option><option value="cross">Cross-training</option></select></label>
         <div class="pair">
-          <label class="field">Distance<span class="vol"><input id="lg-dist" type="number" step="0.1" min="0" inputmode="decimal"><span class="lg-u">mi</span></span></label>
+          <label class="field">Distance<span class="vol"><input id="lg-dist" type="number" step="any" min="0" inputmode="decimal"><span class="lg-u">mi</span></span></label>
           <label class="field"><span>Time <span class="opt">(optional)</span></span><input id="lg-time" data-time placeholder="h:mm:ss" inputmode="numeric"></label>
         </div>
         <fieldset class="field"><legend>How did it feel?</legend><div class="seg" id="lg-feel"><button type="button" data-v="great">Great</button><button type="button" data-v="good">Good</button><button type="button" data-v="ok">OK</button><button type="button" data-v="tough">Tough</button><button type="button" data-v="pain">Pain</button></div></fieldset>

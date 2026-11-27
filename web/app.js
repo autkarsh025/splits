@@ -634,7 +634,7 @@ function autoTime(el) {
   el.value = dig.length > 4 ? `${dig.slice(0, -4)}:${dig.slice(-4, -2)}:${dig.slice(-2)}` : dig.length > 2 ? `${dig.slice(0, -2)}:${dig.slice(-2)}` : dig;
 }
 // capture phase, so the formatted value is what every other handler sees
-document.addEventListener('input', e => { if (e.target.matches('input[data-time]')) autoTime(e.target); }, true);
+document.addEventListener('input', e => { if (e.target.matches('input[data-time]') || (e.target.id === 'conv-v' && /^(mi|km)$/.test(document.getElementById('conv-u').value))) autoTime(e.target); }, true);
 const isReady = () => S.submitted && !!analyse();
 function selectSub(btn) {
   const bar = btn.parentElement;
