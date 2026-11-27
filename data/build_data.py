@@ -189,11 +189,15 @@ def main() -> None:
     }
     a = d.dropna(subset=["age"])
     a = a[(a.age >= 16) & (a.age <= 85)]
+    out["age_q"] = {}
     if len(a) > 50000:
         for lo in range(18, 80, 5):
             grp = a[(a.age >= lo) & (a.age < lo + 5)]
             if len(grp) > 2000:
                 out["age"].append([lo, int(grp.t.median()), int(len(grp))])
+            for g, sub in (("all", grp), ("men", grp[grp.g == "M"]), ("women", grp[grp.g == "F"])):
+                if len(sub) > 1500:
+                    out["age_q"][f"{g}:{lo}"] = {"n": int(len(sub)), "q": [int(round(v)) for v in np.quantile(sub.t.values, np.linspace(0, 1, 101))]}
     try:
         out["college"] = college(nrcd_events())
         out["sources"].append("National Running Club Database v2.0.0, Zenodo, CC BY 4.0")
