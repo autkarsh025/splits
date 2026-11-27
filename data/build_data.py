@@ -145,6 +145,58 @@ def college(tables: dict) -> dict:
     return out
 
 
+BOSTON = "https://raw.githubusercontent.com/llimllib/bostonmarathon/master/results/{y}/results.csv"
+AGEGRADE = "https://raw.githubusercontent.com/AlanLyttonJones/age-grade-tables/master/2025%20Files/{sex}RoadStd2025.xlsx"
+
+
+def boston() -> tuple[pd.DataFrame, dict]:
+    """Every Boston Marathon finish 2001-2014 (Bill Mill's collection of baa.org results, MIT).
+    Official times are in minutes. 2013 and 2014 include the half split."""
+    frames, halves = [], []
+    for y in range(2001, 2015):
+        try:
+            d = pd.read_csv(io.BytesIO(fetch(BOSTON.format(y=y))), low_memory=False)
+        except Exception as e:
+            print(f"[boston {y}] skipped: {e}", file=sys.stderr)
+            continue
+        t = pd.to_numeric(d["official"], errors="coerce") * 60
+        f = pd.DataFrame({"t": t, "g": d["gender"].astype(str).str.upper().str[0], "age": pd.to_numeric(d.get("age"), errors="coerce"), "year": y, "race": "Boston"})
+        frames.append(f[(f.t > 2 * 3600 - 600) & (f.t < 8 * 3600)])
+        if "half" in d.columns:
+            h = pd.to_numeric(d["half"], errors="coerce") * 60
+            ok = h.notna() & t.notna() & (h > 3000) & (t > h)
+            halves.append(pd.DataFrame({"first": h[ok], "second": (t - h)[ok]}))
+    stats = {}
+    if halves:
+        hv = pd.concat(halves)
+        ratio = hv.second / hv["first"]
+        stats = {"n": int(len(hv)), "negative": round(float((ratio < 1).mean()), 4), "median_slowdown": round(float(ratio.median() - 1), 4),
+                 "years": [2013, 2014]}
+    print(f"[boston] {sum(len(f) for f in frames):,} finishes")
+    return (pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()), stats
+
+
+def agegrade() -> dict:
+    """2025 road age-grading factors by Alan Jones (USATF MLDR approved, CC0)."""
+    cols = {"mile": "1 Mile", "5k": "5 km", "8k": "8 km", "10k": "10 km", "15k": "15 km", "half": "H. Mar", "marathon": "Marathon"}
+    out = {}
+    for sex, key in (("Male", "M"), ("Female", "F")):
+        wb = pd.read_excel(io.BytesIO(fetch(AGEGRADE.format(sex=sex))), sheet_name=0, header=None)
+        hdr = next(i for i in range(10) if "1 Mile" in [str(v).strip() for v in wb.iloc[i].values])
+        names = [str(v).strip() for v in wb.iloc[hdr].values]
+        oc_row = next(i for i in range(hdr, hdr + 6) if any(str(v).strip() == "OC sec" for v in wb.iloc[i].values))
+        age_col = max(j for j, v in enumerate(names) if v == "Age")
+        rows = wb.iloc[oc_row + 1:]
+        rows = rows[pd.to_numeric(rows[age_col], errors="coerce").between(5, 100)]
+        ages = [int(a) for a in rows[age_col]]
+        out[key] = {"ages": [ages[0], ages[-1]], "oc": {}, "f": {}}
+        for k, c in cols.items():
+            j = names.index(c)
+            out[key]["oc"][k] = round(float(wb.iloc[oc_row, j]), 1)
+            out[key]["f"][k] = [round(float(v), 4) for v in rows[j]]
+    return out
+
+
 def main() -> None:
     frames = []
     for name, (url, kind) in SOURCES.items():
@@ -165,6 +217,9 @@ def main() -> None:
                     m = re.search(r"(20\d\d)", str(sheet))
                     n["year"] = int(m[1]) if m else np.nan
                 frames.append(n)
+    bos, bos_stats = boston()
+    if len(bos):
+        frames.append(bos)
     if not frames:
         sys.exit("no data downloaded")
     d = pd.concat(frames, ignore_index=True)
@@ -185,7 +240,9 @@ def main() -> None:
         "median_by_year": [[int(y), int(r["median"]), int(r["count"])] for y, r in by_year.iterrows() if r["count"] > 10000],
         "age": [],
         "sources": ["Marathon Data 2000-2019, Colorado School of Mines, Zenodo, CC BY 4.0",
-                    "London Marathon Data 2018-2023, University College Cork, Zenodo, CC BY 4.0"],
+                    "London Marathon Data 2018-2023, University College Cork, Zenodo, CC BY 4.0",
+                    "Boston Marathon results 2001-2014 from baa.org, collected by Bill Mill (github.com/llimllib/bostonmarathon), MIT"],
+        "boston_splits": bos_stats,
     }
     a = d.dropna(subset=["age"])
     a = a[(a.age >= 16) & (a.age <= 85)]
@@ -204,6 +261,11 @@ def main() -> None:
     except Exception as e:
         print(f"[nrcd] skipped: {e}", file=sys.stderr)
         out["college"] = {}
+    try:
+        out["agegrade"] = agegrade()
+        out["sources"].append("Road age-grading factors 2025 by Alan Jones, USATF MLDR (github.com/AlanLyttonJones/age-grade-tables), CC0")
+    except Exception as e:
+        print(f"[agegrade] skipped: {e}", file=sys.stderr)
     names = {"Nyc": "New York City", "Marinecorps": "Marine Corps", "La": "Los Angeles", "Twin_Cities": "Twin Cities",
              "Grandmas": "Grandma's", "California_International": "California International"}
     for r_ in out["races"]:
