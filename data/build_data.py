@@ -121,8 +121,11 @@ def college(tables: dict) -> dict:
     """Best time per athlete per event (individual results only), quantiles by gender."""
     j = next(v for k, v in tables.items() if k.endswith("joined.csv"))
     r = next(v for k, v in tables.items() if k.endswith("result.csv"))
+    ath = next(v for k, v in tables.items() if k.endswith("athlete.csv"))
     solo = set(r.loc[r["athlete_id_2"].isna(), "result_id"])
-    j = j[j["result_id"].isin(solo)].copy()
+    # joined.csv repeats a result once per course-details row (one per gender), so take gender from the athlete
+    j = j[j["result_id"].isin(solo)].drop(columns=["gender"], errors="ignore").drop_duplicates("result_id").copy()
+    j = j.merge(ath[["athlete_id", "gender"]], on="athlete_id", how="left")
     ev = j["event_name"].astype(str).str.strip().str.lower()
     print("[nrcd] event names:", sorted(ev.unique())[:60])
     j["m"] = ev.map(EVENT_M)
