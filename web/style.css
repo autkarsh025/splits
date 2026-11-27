@@ -358,3 +358,14 @@ body[data-state=ready] .teaser { display: none }
 #fuelout .big3 b { display: block; font-size: 30px; font-weight: 700; font-variation-settings: "wdth" 112 } #fuelout .big3 span { font-size: 14px; color: var(--ink2) }
 .gels { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 6px 0 18px } .gels li { border: 1px solid var(--field); border-radius: 99px; padding: 4px 12px; font-size: 14px; font-variant-numeric: tabular-nums }
 @media (max-width: 900px) { .fuellayout { grid-template-columns: minmax(0, 1fr) } #fuelout .big3 { grid-template-columns: minmax(0, 1fr) } }
+
+/* bar charts: values on the bars, grow from left to right */
+.chart .vlab { font-weight: 700; font-size: 13px; fill: var(--ink) } .chart .vlab .of { font-weight: 500; fill: var(--mute) }
+.chart .dlab { font-weight: 700; font-size: 11px; fill: var(--paper) } .chart .nowlab { font-weight: 700; fill: var(--ink) }
+.grow { transform-box: fill-box; transform-origin: 50% 100%; animation: grow .7s cubic-bezier(.2, .8, .2, 1) both }
+.fade { animation: fadein .4s ease-out both }
+@keyframes grow { from { transform: scaleY(0) } }
+@keyframes fadein { from { opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .grow, .fade { animation: none } }
+.legend i.dash { background: none; border: 1.5px dashed var(--field); width: 8px; height: 8px }
+.legend .lu { margin-left: auto }

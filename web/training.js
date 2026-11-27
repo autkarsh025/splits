@@ -99,9 +99,14 @@ export function weekPlan(V, { volume = 25, unit = 'mi', days = 5, level = 'regul
   const target = Math.round(plan.reduce((s, d) => s + d.dist, 0) / U);
   plan.forEach(d => { if (d.type !== 'race') d.dist = (d.type === 'long' ? Math.floor(d.dist / U + 1e-9) : Math.round(d.dist / U)) * U; });
   const diff = target - Math.round(plan.reduce((s, d) => s + d.dist, 0) / U);
-  const fix = plan.filter(d => d.type === 'easy' || d.type === 'strides').sort((a, b) => b.dist - a.dist)[0];
-  if (fix && diff) fix.dist = Math.max(U, fix.dist + diff * U);
+  const easyDays = plan.filter(d => d.type === 'easy' || d.type === 'strides').sort((a, b) => a.dist - b.dist);
+  const longRun = plan.find(d => d.type === 'long');
+  let rem = diff;
+  for (let pass = 0; pass < 4 && rem !== 0 && easyDays.length; pass++)
+    for (const d of easyDays) { if (!rem) break; const nd = d.dist + Math.sign(rem) * U; if (nd >= U && (!longRun || nd <= longRun.dist)) { d.dist = nd; rem -= Math.sign(rem); } }
+  if (rem > 0 && longRun && longRun.dist + rem * U <= longCap * U + 1e-9) longRun.dist += rem * U;
   plan.forEach(d => { if (d.type !== 'rest' && d.type !== 'race' && d.dist < U) d.dist = U; });
+  if (longRun) { const maxEasy = Math.max(0, ...easyDays.map(d => d.dist)); if (maxEasy > longRun.dist) longRun.dist = maxEasy; }
   const total = plan.reduce((s, d) => s + d.dist, 0);
   const hardWork = plan.reduce((s, d) => s + (d.work || 0), 0);
   const short = volM - total > volM * 0.04;
@@ -147,37 +152,44 @@ const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d
  * over the longest recent run (Frandsen), and the last two weeks taper by about 30% then 55%
  * while keeping the hard sessions (Bosquet et al. 2007: cut volume 41-60%, keep intensity and frequency).
  */
-export function seasonPlan({ goal = '5k', date = '', unit = 'mi', current = 15, longest = 5, level = 'regular', injury = 'no', today = new Date() } = {}) {
+export function seasonPlan({ goal = '5k', date = '', unit = 'mi', current = 15, longest = 5, level = 'regular', injury = 'no', today = new Date(), start = null, history = {}, longestRecent = 0 } = {}) {
   const k = unit === 'km' ? 1 / 1.609344 : 1;  // answers in the chosen unit, the table is in miles
-  const start = weekKey(today);
+  const first = start || weekKey(today), thisWeek = weekKey(today);
   let n = 12, raceWeek = null;
   if (date && goal !== 'fit') {
     raceWeek = weekKey(new Date(date + 'T12:00:00'));
-    n = Math.round((new Date(raceWeek) - new Date(start)) / (7 * 864e5)) + 1;
+    n = Math.round((new Date(raceWeek) - new Date(first)) / (7 * 864e5)) + 1;
     if (n < 1) { raceWeek = null; n = 12; }
   }
-  n = Math.min(30, Math.max(1, n));
-  let v0 = Math.max(unit === 'km' ? 8 : 5, current * (injury === 'yes' ? 0.8 : 1));
-  const peak = Math.max(v0, Math.min(PEAK[goal][Math.max(0, LEVELS.indexOf(level))] / k, v0 * 1.6));
+  n = Math.min(40, Math.max(1, n));
+  const minStart = unit === 'km' ? 12 : 8;  // run-walk volume for a true beginner
+  let v0 = Math.max(minStart, current * (injury === 'yes' ? 0.8 : 1));
+  const target = PEAK[goal][Math.max(0, LEVELS.indexOf(level))] / k;
+  const peak = Math.max(v0, target);
   const taper = raceWeek ? (n >= 4 ? 2 : n >= 2 ? 1 : 0) : 0;
-  let long = Math.max(longest || v0 * 0.3, unit === 'km' ? 3 : 2);
-  const weeks = []; let v = v0;
+  let long = Math.max(longest || 0, longestRecent || 0, unit === 'km' ? 5 : 3);
+  const weeks = []; let v = v0, reached = v0;
   for (let w = 0; w < n; w++) {
-    const fromEnd = n - 1 - w, build = n - taper;
+    const fromEnd = n - 1 - w, build = n - taper, ws = addDays(first, 7 * w);
+    // adapt to what you actually ran: never build more than about 10% past last week's logged total
+    const prevStart = addDays(ws, -7), ran = history[prevStart];
+    const adapted = ws <= thisWeek && w > 0 && ran != null && ran < (weeks[w - 1]?.volume || 0) * 0.85;
+    if (adapted) { v = Math.max(minStart, ran * 1.1); long = Math.min(long, Math.max(unit === 'km' ? 5 : 3, ran * 0.35)); }
     let phase, vol, cap;
     if (fromEnd < taper) {
       phase = fromEnd === 0 && raceWeek ? 'Race week' : 'Taper';
-      vol = peak * (fromEnd === 0 ? 0.45 : 0.7); cap = long * (fromEnd === 0 ? 0.5 : 0.75);
+      vol = reached * (fromEnd === 0 ? 0.45 : 0.7); cap = long * (fromEnd === 0 ? 0.5 : 0.75);
     } else if (w > 0 && w % 4 === 3) {
       phase = 'Easier week'; vol = v * 0.8; cap = long * 0.85;
     } else {
-      if (w > 0) { v = Math.min(peak, v * 1.08); long = long * 1.1; }
-      vol = v; cap = long;
+      if (w > 0 && !adapted) { v = Math.min(peak, v * 1.1); long = long * 1.1; }
+      vol = v; cap = long; reached = Math.max(reached, v);
       phase = w < Math.max(1, Math.round(build * 0.4)) ? 'Base' : build - w <= 3 ? 'Peak' : 'Build';
     }
-    weeks.push({ start: addDays(start, 7 * w), phase, volume: Math.round(vol), longCap: cap, quality: phase === 'Base' ? 1 : 2 });
+    weeks.push({ start: ws, phase, volume: Math.max(1, Math.round(vol)), longCap: cap, quality: phase === 'Base' ? 1 : 2, adapted });
   }
-  return { weeks, raceWeek, peak: Math.round(peak), unit };
+  const shortRunway = raceWeek && reached < target * 0.6;
+  return { weeks, raceWeek, peak: Math.round(reached), target: Math.round(target), shortRunway, unit, first };
 }
 
 // ---------------------------------------------------------------- from your log
