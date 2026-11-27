@@ -229,6 +229,7 @@
         </div>
         <div id="plan" hidden>
           <div class="planhead"><div><h3 id="pl-title"></h3><p class="sub" id="pl-sub"></p></div><button type="button" class="ghostbtn txt" id="pl-edit">Change answers</button></div>
+          <div class="today" id="today"></div>
           <div class="season chart" id="season" role="group" aria-label="Weekly volume for the whole plan"></div>
           <div class="wkhead"><p id="wk-sum"></p><div class="wknav"><button type="button" class="ghostbtn" id="wk-prev" aria-label="Previous week">&lsaquo;</button><span id="wk-range"></span><button type="button" class="ghostbtn" id="wk-next" aria-label="Next week">&rsaquo;</button></div></div>
           <p class="note" id="wk-note" hidden></p>
@@ -308,37 +309,72 @@
 <!-- ============================================================ log -->
 <div class="page" id="p-log" role="tabpanel" aria-labelledby="tab-log" hidden>
   <section class="sec first">
-    <div class="in loglayout">
-      <form class="logform" id="logform" autocomplete="off" aria-label="Log a run">
-        <h2>Log a run</h2>
-        <label class="field">Date<input id="lg-date" type="date" required></label>
-        <label class="field">Type<select id="lg-type"><option value="easy">Easy run</option><option value="long">Long run</option><option value="quality">Workout</option><option value="race">Race</option><option value="cross">Cross-training</option></select></label>
-        <div class="pair">
+    <div class="in">
+      <div class="loghead">
+        <h2>Your log</h2>
+        <div class="logactions">
+          <button type="button" class="btn" id="lg-new">+ Log a run</button>
+          <button type="button" class="ghostbtn txt" id="lg-impbtn">Import</button>
+          <button type="button" class="ghostbtn txt" id="lg-export">Export</button>
+        </div>
+      </div>
+      <div class="prbanner" id="lg-pr" hidden></div>
+
+      <form class="drawer logform" id="logform" autocomplete="off" aria-label="Log a run" hidden>
+        <div class="drawhead"><h3 id="lg-formtitle">Log a run</h3><button type="button" class="rm" id="lg-close" aria-label="Close">&times;</button></div>
+        <div class="formgrid">
+          <label class="field wide">Title <span class="opt">(optional)</span><input id="lg-title" maxlength="80" placeholder="Morning run"></label>
+          <label class="field">Date<input id="lg-date" type="date" required></label>
+          <label class="field">Type<select id="lg-type"><option value="easy">Easy run</option><option value="long">Long run</option><option value="quality">Workout</option><option value="race">Race</option><option value="cross">Cross-training</option></select></label>
           <label class="field">Distance<span class="vol"><input id="lg-dist" type="number" step="any" min="0" inputmode="decimal"><span class="lg-u">mi</span></span></label>
           <label class="field"><span>Time <span class="opt">(optional)</span></span><input id="lg-time" data-time placeholder="h:mm:ss" inputmode="numeric"></label>
+          <label class="field"><span>Climb <span class="opt">(optional)</span></span><span class="vol"><input id="lg-gain" type="number" step="any" min="0" inputmode="numeric"><span class="lg-gu">ft</span></span></label>
+          <fieldset class="field"><legend>How did it feel?</legend><div class="seg" id="lg-feel"><button type="button" data-v="great">Great</button><button type="button" data-v="good">Good</button><button type="button" data-v="ok">OK</button><button type="button" data-v="tough">Tough</button><button type="button" data-v="pain">Pain</button></div></fieldset>
+          <label class="field wide"><span>Notes <span class="opt">(optional)</span></span><input id="lg-notes" maxlength="280" placeholder="Route, shoes, how the workout went"></label>
         </div>
-        <fieldset class="field"><legend>How did it feel?</legend><div class="seg" id="lg-feel"><button type="button" data-v="great">Great</button><button type="button" data-v="good">Good</button><button type="button" data-v="ok">OK</button><button type="button" data-v="tough">Tough</button><button type="button" data-v="pain">Pain</button></div></fieldset>
-        <label class="field"><span>Notes <span class="opt">(optional)</span></span><input id="lg-notes" maxlength="140" placeholder="Route, shoes, how the workout went"></label>
-        <div class="gorow"><button type="submit" class="btn">Save run</button><span class="goerr" id="lg-err" role="alert"></span></div>
-        <div class="import">
-          <h3>Import from your watch</h3>
-          <p class="hint">Drop in GPX or TCX files from Garmin, Coros, Apple Health or Strava, or Strava&rsquo;s <b>activities.csv</b> from Settings, My Account, Download your data. Runs you already logged are skipped.</p>
-          <label class="drop" id="lg-drop"><input type="file" id="lg-file" accept=".gpx,.tcx,.csv" multiple><span>Choose files or drop them here</span></label>
-          <p class="fine" id="lg-imp" role="status"></p>
-        </div>
+        <p class="pacehint" id="lg-pace"></p>
+        <div class="gorow"><button type="submit" class="btn" id="lg-save">Save run</button><button type="button" class="linkbtn quiet" id="lg-cancel">Cancel</button><span class="goerr" id="lg-err" role="alert"></span></div>
       </form>
-      <div class="logout">
-        <div class="prbanner" id="lg-pr" hidden></div>
-        <div class="fitcard" id="lg-fit" hidden></div>
-        <div class="logstats" id="lg-stats"></div>
-        <p class="milestone" id="lg-mile"></p>
-        <h3>Last 12 weeks</h3>
-        <div class="chart" id="lg-chart"></div>
-        <h3>Your runs</h3>
-        <p class="sub" id="lg-empty">No runs yet. Log your first one and it will show up here and tick off your training plan.</p>
-        <ol class="runs" id="lg-list"></ol>
-        <p class="fine">Saved in this browser only. Nothing is sent anywhere.</p>
+
+      <div class="drawer import" id="lg-impd" hidden>
+        <div class="drawhead"><h3>Import from your watch</h3><button type="button" class="rm" id="lg-impclose" aria-label="Close">&times;</button></div>
+        <p class="hint">GPX or TCX files from Garmin, Coros, Apple Health or Strava (each activity&rsquo;s Export GPX), or Strava&rsquo;s <b>activities.csv</b> from Settings, My Account, Download your data. Runs you already logged are skipped. Files stay on your device.</p>
+        <label class="drop" id="lg-drop"><input type="file" id="lg-file" accept=".gpx,.tcx,.csv" multiple><span>Choose files or drop them here</span></label>
+        <p class="fine" id="lg-imp" role="status"></p>
       </div>
+
+      <div class="period">
+        <div class="seg" id="lg-period" role="radiogroup" aria-label="Period"><button type="button" role="radio" data-v="week">Week</button><button type="button" role="radio" data-v="month">Month</button><button type="button" role="radio" data-v="year">Year</button><button type="button" role="radio" data-v="all">All time</button></div>
+        <div class="logstats" id="lg-stats"></div>
+        <div class="wkprog" id="lg-wkprog" hidden></div>
+      </div>
+      <div class="fitcard" id="lg-fit" hidden></div>
+
+      <div class="subtabs" role="tablist" aria-label="Your log">
+        <button role="tab" aria-selected="true" data-sub="lg-acts">Activities</button>
+        <button role="tab" aria-selected="false" data-sub="lg-cal">Calendar</button>
+        <button role="tab" aria-selected="false" data-sub="lg-rec">Records</button>
+        <button role="tab" aria-selected="false" data-sub="lg-prog">Progress</button>
+      </div>
+      <div class="subpanel" id="lg-acts" role="tabpanel">
+        <div id="lg-feedwrap">
+          <div class="filters"><select id="lg-ftype" aria-label="Filter by type"><option value="">All runs</option><option value="easy">Easy runs</option><option value="long">Long runs</option><option value="quality">Workouts</option><option value="race">Races</option><option value="cross">Cross-training</option></select><input id="lg-q" type="search" placeholder="Search titles and notes" aria-label="Search runs"></div>
+          <div class="empty" id="lg-empty"><h3>No runs yet</h3><p>Log a run or import from your watch. Runs show up here, tick off your training plan, and build your records.</p><button type="button" class="btn" data-open="form">+ Log a run</button> <button type="button" class="ghostbtn txt" data-open="import">Import</button></div>
+          <div id="lg-feed"></div>
+        </div>
+        <article class="detail" id="lg-detail" hidden></article>
+      </div>
+      <div class="subpanel" id="lg-cal" role="tabpanel" hidden>
+        <div class="calhead"><button type="button" class="ghostbtn" id="lg-calprev" aria-label="Previous month">&lsaquo;</button><h3 id="lg-calmonth"></h3><button type="button" class="ghostbtn" id="lg-calnext" aria-label="Next month">&rsaquo;</button></div>
+        <div class="cal" id="lg-calgrid"></div>
+      </div>
+      <div class="subpanel" id="lg-rec" role="tabpanel" hidden><div id="lg-records"></div></div>
+      <div class="subpanel" id="lg-prog" role="tabpanel" hidden>
+        <h3>Weekly distance</h3><div class="chart" id="lg-chart"></div>
+        <h3>Monthly distance</h3><div class="chart" id="lg-mchart"></div>
+        <h3>Fitness from your runs</h3><p class="sub" id="lg-vsub"></p><div class="chart" id="lg-vchart"></div>
+      </div>
+      <p class="fine">Saved in this browser only. Use Export to keep a copy.</p>
     </div>
   </section>
 </div>

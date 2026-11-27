@@ -369,3 +369,83 @@ body[data-state=ready] .teaser { display: none }
 @media (prefers-reduced-motion: reduce) { .grow, .fade { animation: none } }
 .legend i.dash { background: none; border: 1.5px dashed var(--field); width: 8px; height: 8px }
 .legend .lu { margin-left: auto }
+
+/* ---------------------------------------------------------------- log (feed, detail, calendar, records) */
+.loghead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px }
+.logactions { display: flex; gap: 8px; flex-wrap: wrap }
+.drawer { border: 1px solid var(--rule); border-radius: 12px; padding: 18px 20px; margin: 0 0 20px; background: var(--soft) }
+.drawhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px } .drawhead h3 { font-size: 19px }
+.drawhead .rm { border: 0; background: none; font-size: 24px; color: var(--mute); width: 36px; height: 36px; border-radius: 6px } .drawhead .rm:hover { background: var(--paper); color: var(--ink) }
+.formgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 16px } .formgrid .field { margin: 0 } .formgrid .wide { grid-column: span 2 }
+.formgrid fieldset.field { grid-column: span 2 } .formgrid .seg { background: var(--paper) }
+.pacehint { min-height: 1.4em; color: var(--track-ink); font-weight: 600; font-size: 15px; margin: 10px 0 0 }
+.drawer .gorow { margin-top: 10px }
+.period { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px } .period .seg { margin: 0; width: fit-content }
+.logstats { grid-template-columns: repeat(6, minmax(0, 1fr)) !important }
+.wkprog { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 15px; color: var(--ink2) }
+.wkprog .bar, .wkfoot .bar { flex: 1 1 240px; max-width: 420px; height: 10px; background: var(--soft); border-radius: 99px; overflow: hidden; display: block }
+.wkprog .bar i, .wkfoot .bar i { display: block; height: 100%; background: var(--track); border-radius: 99px; transition: width .6s ease }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px }
+.filters select, .filters input { height: 40px; border: 1px solid var(--field); border-radius: 8px; background: var(--paper); padding: 0 10px; font-size: 15px } .filters input { flex: 1 1 220px; max-width: 360px }
+.empty { text-align: center; padding: 36px 16px; border: 1px dashed var(--field); border-radius: 12px } .empty h3 { font-size: 20px; margin-bottom: 6px } .empty p { color: var(--ink2); max-width: 32em; margin: 0 auto 14px }
+.month h4 { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 16px; margin: 22px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--rule) }
+.feed { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px }
+.act { width: 100%; display: grid; grid-template-columns: 52px minmax(0, 1fr) auto auto; gap: 14px; align-items: center; text-align: left; border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); padding: 10px 14px; cursor: pointer }
+.act:hover { border-color: var(--field); box-shadow: 0 1px 0 var(--rule) } .act:focus-visible { outline-offset: 0 }
+.adate { text-align: center } .adate b { display: block; font-size: 22px; line-height: 1; font-variation-settings: "wdth" 112 } .adate small { color: var(--mute); font-size: 12px }
+.amain { min-width: 0 } .atitle { display: block; font-size: 16px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 3px } .tags i { font-style: normal; font-size: 12px; font-weight: 600; color: var(--ink2); background: var(--soft); border-radius: 99px; padding: 1px 8px }
+.tags .prb, i.prb { font-style: normal; color: var(--track-ink); background: var(--track-soft); border-radius: 99px; padding: 1px 8px; font-size: 12px; font-weight: 700 }
+.ty-race { color: var(--pace) !important } .ty-quality { color: var(--track-ink) !important }
+.anote { display: block; color: var(--mute); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px }
+.astats { display: flex; gap: 16px } .astats span { text-align: right; min-width: 52px } .astats b { display: block; font-size: 16px; font-variant-numeric: tabular-nums } .astats small { color: var(--mute); font-size: 12px }
+.thumb svg { width: 96px; height: 64px; display: block; background: var(--soft); border-radius: 8px }
+.detail .back { margin-bottom: 10px; display: inline-block }
+.dhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap } .dhead h3 { font-size: clamp(22px, 2.4vw, 28px) } .dhead .sub { margin: 4px 0 0 }
+.dact { display: flex; gap: 8px } .ghostbtn.danger { color: var(--track-ink) }
+.dstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 18px 0; padding: 14px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule) }
+.dstats b { display: block; font-size: 26px; font-weight: 700; font-variation-settings: "wdth" 110; font-variant-numeric: tabular-nums } .dstats span { font-size: 14px; color: var(--ink2) }
+.dnotes { font-size: 16px; color: var(--ink2); border-left: 3px solid var(--rule); padding-left: 12px; margin: 0 0 18px }
+.detail h4 { font-size: 17px; margin: 26px 0 10px } .dmap { max-width: 760px } .dmap .legend { margin-top: 8px }
+.legend .ramp { width: 90px; height: 8px; border-radius: 99px; background: linear-gradient(90deg, rgb(77,101,255), rgb(236,90,60)) }
+.chart .maplab { font-size: 12px; font-weight: 700; fill: var(--ink) }
+.splitt { max-width: 560px; margin-top: 10px } .splitt .fast { color: var(--track-ink); font-weight: 600 }
+.calhead { display: flex; align-items: center; gap: 14px; margin-bottom: 12px } .calhead h3 { min-width: 10em; text-align: center; font-size: 19px }
+.cal { border: 1px solid var(--rule); border-radius: 12px; overflow: hidden }
+.calrow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)) 72px; border-top: 1px solid var(--rule) } .calrow:first-child { border-top: 0 }
+.calrow.head span { font-size: 12px; font-weight: 600; color: var(--mute); padding: 8px; text-align: center; background: var(--soft) }
+.calday { min-height: 78px; padding: 6px; border-left: 1px solid var(--rule); display: flex; flex-direction: column; align-items: center; gap: 4px } .calday:first-child { border-left: 0 }
+.calday small { align-self: flex-start; color: var(--mute); font-size: 12px } .calday.today small { color: #fff; background: var(--track); border-radius: 99px; min-width: 20px; text-align: center; padding: 0 4px; font-weight: 700 }
+.calday.blank { background: var(--soft) } .calday.future { background: color-mix(in srgb, var(--soft) 40%, transparent) }
+.calday .dot { border: 0; border-radius: 50%; background: var(--track); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; cursor: pointer; min-width: 18px; min-height: 18px }
+.calday .plan { font-style: normal; font-size: 12px; color: var(--mute); border: 1px dashed var(--field); border-radius: 99px; padding: 1px 7px }
+.calwk { border-left: 1px solid var(--rule); background: var(--soft); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px } .calwk small { color: var(--mute); font-size: 12px }
+.recgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 8px }
+.recgrid div { border: 1px solid var(--rule); border-radius: 12px; padding: 12px 14px } .recgrid b { display: block; font-size: 24px; font-weight: 700; font-variation-settings: "wdth" 110 } .recgrid span, .recgrid small { display: block; font-size: 14px; color: var(--ink2) }
+#lg-rec h4, #lg-prog h3 { font-size: 17px; margin: 22px 0 8px }
+/* ---------------------------------------------------------------- training: today card, week */
+.today { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 14px; margin: 18px 0 8px }
+.tmain { border: 1px solid var(--rule); border-left: 5px solid var(--field); border-radius: 12px; padding: 16px 18px; background: var(--paper) }
+.tmain.ty-quality { border-left-color: var(--track) } .tmain.ty-long { border-left-color: var(--pace) } .tmain.ty-race { border-left-color: var(--pace) } .tmain.ty-rest { border-left-color: var(--rule) }
+.tl { display: block; font-size: 13px; font-weight: 600; color: var(--mute); margin-bottom: 4px }
+.tmain h3 { font-size: clamp(22px, 2.4vw, 28px); display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap } .tdist { font-size: .85em; color: var(--track-ink) }
+.tmain p { margin: 6px 0 0; color: var(--ink2) } .tstr { font-size: 14px } .tact { margin-top: 12px } .logged.big { font-size: 16px }
+.tnext { border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; background: var(--soft); display: flex; flex-direction: column; gap: 2px } .tnext b { font-size: 17px }
+.week li { border-left: 4px solid transparent; padding-left: 10px !important } .week li.quality { border-left-color: var(--track) } .week li.long, .week li.race { border-left-color: var(--pace) }
+.week li.istoday { background: var(--soft); border-radius: 0 10px 10px 0 } .week li.istoday .d small { color: var(--track-ink); font-weight: 700 }
+.week li.missed { opacity: .65 } .week .tag.miss { color: var(--mute); background: var(--soft) }
+.wkfoot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
+.wkfoot #wk-done { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; flex-wrap: wrap }
+@media (max-width: 900px) { .today { grid-template-columns: minmax(0, 1fr) } .formgrid { grid-template-columns: repeat(2, minmax(0, 1fr)) } .logstats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important } }
+@media (max-width: 600px) {
+  .act { grid-template-columns: 44px minmax(0, 1fr) auto; } .act .thumb { display: none } .astats { gap: 10px } .astats span:nth-child(3) { display: none }
+  .formgrid .wide, .formgrid fieldset.field { grid-column: 1 / -1 }
+  .calrow { grid-template-columns: repeat(7, minmax(0, 1fr)) 48px } .calday { min-height: 56px; padding: 3px } .calday .plan { display: none } .calday .dot { font-size: 9px }
+}
+
+.wkfoot #wk-done .bar { min-width: 160px; flex: 1 1 200px }
+@media (max-width: 600px) {
+  .week li { grid-template-columns: 50px minmax(0, 1fr) 46px !important; gap: 10px !important; padding-left: 8px !important }
+  .week .s p { font-size: 14px }
+  .wkfoot #wk-done { flex-direction: column; align-items: stretch }
+}

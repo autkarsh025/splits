@@ -2,6 +2,7 @@ import { DISTANCES, byId, WORLD_RECORDS, vdot, predict, riegel, trainingPaces, f
 import { planGoal, checkpoints, phases, raceDay } from './plan.js';
 import { weekPlan, seasonPlan, ROUTINES, weekKey, loadRatio, bestEffort, sweatRate, fuelPlan } from './training.js';
 import { parseTrack, parseStrava, isDuplicate } from './importer.js';
+import { createLog } from './log.js';
 
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); e.innerHTML = html; return e; };
@@ -450,7 +451,7 @@ function quizAnswer(v) {
 }
 const animOnce = (key, sig) => { S.anim = S.anim || {}; const go = S.anim[key] !== sig && !matchMedia('(prefers-reduced-motion: reduce)').matches; S.anim[key] = sig; return go; };
 function seasonChart(P, cur, now, logged, u) {
-  const n = P.weeks.length, W = 1100, H = 230, top = 26, base = H - 30, bw = W / n, mx = Math.max(...P.weeks.map(w => w.volume), ...Object.values(logged), 1) * 1.12;
+  const n = P.weeks.length, W = Math.max(320, Math.round($('#season').clientWidth || Math.min(1100, document.documentElement.clientWidth - 36))), H = W < 600 ? 190 : 230, top = 26, base = H - 30, bw = W / n, mx = Math.max(...P.weeks.map(w => w.volume), ...Object.values(logged), 1) * 1.12;
   const col = ph => ({ Base: 'var(--field)', Build: 'var(--track-soft2)', Peak: 'var(--track)', 'Easier week': 'var(--rule)', Taper: 'var(--pace)', 'Race week': 'var(--pace)' })[ph];
   const anim = animOnce('season', JSON.stringify([P.weeks.map(w => w.volume), logged]));
   const Y = v => base - v / mx * (base - top), small = bw < 40;
@@ -465,102 +466,109 @@ function seasonChart(P, cur, now, logged, u) {
   const legend = ['Base', 'Build', 'Peak', 'Easier week', 'Taper'].map(p => `<span><i style="background:${col(p)}"></i>${p}</span>`).join('') + `<span><i style="background:var(--ink)"></i>Logged</span>`;
   return svg(W, H, `<line x1="0" x2="${W}" y1="${base}" y2="${base}" stroke="var(--rule)"/>` + bars) + `<div class="legend">${legend}<span class="lu">${u} per week</span></div>`;
 }
+// shared: the season and any week's plan, from your answers, fitness and log
+let seasonCache = null;
+function season(A) {
+  const a = S.ans; if (!a || !A) return null;
+  const u = a.unit, Uu = u === 'km' ? KM : MI, thisWk = weekKey();
+  if (!a.created) { a.created = thisWk; store.set('oval-answers', a); }
+  const acts = store.get('oval-activities', []), history = {};
+  acts.forEach(x => { const k = weekKey(new Date(x.date + 'T12:00:00')); if (k < thisWk) history[k] = (history[k] || 0) + x.m / Uu; });
+  const recent = acts.filter(x => (Date.now() - new Date(x.date + 'T12:00:00')) / 864e5 < 31).reduce((m, x) => Math.max(m, x.m / Uu), 0);
+  const sig = JSON.stringify([a, history, recent, A.V, thisWk]);
+  if (seasonCache && seasonCache.sig === sig) return seasonCache;
+  const P = seasonPlan({ ...a, today: new Date(), start: a.created, history, longestRecent: recent });
+  seasonCache = { sig, P, a, u, Uu, nowIdx: Math.max(0, P.weeks.findIndex(w => w.start === thisWk)), plans: {} };
+  return seasonCache;
+}
+function planForWeek(A, idx) {
+  const C = season(A); if (!C) return null;
+  if (C.plans[idx]) return C.plans[idx];
+  const { P, a, u } = C, w = P.weeks[idx]; if (!w) return null;
+  const goal = a.goal, isRace = P.raceWeek && w.start === P.raceWeek, rd = isRace ? (new Date(a.date + 'T12:00:00').getDay() + 6) % 7 : null;
+  const race = isRace && goal !== 'fit' ? { day: rd, m: byId(goal).m, label: byId(goal).label } : null;
+  return (C.plans[idx] = weekPlan(A.V, { volume: w.volume, unit: u, days: +a.days, level: a.level, focus: goal === 'fit' ? '5k' : goal, longCap: w.longCap, longDay: a.longDay, maxQuality: w.quality, race }));
+}
+const planWeekByStart = start => { const A = analyse(), C = season(A); if (!C) return null; const i = C.P.weeks.findIndex(w => w.start === start); return i < 0 ? null : planForWeek(A, i); };
+const PHASE_NOTE = {
+  Base: 'Mostly easy miles to build your aerobic engine, with one quality session.',
+  Build: 'Volume rises and a second quality session comes in.',
+  Peak: 'Your biggest weeks, with the most race-specific work.',
+  'Easier week': 'About 20% less running so the last three weeks sink in.',
+  Taper: 'Volume drops by about a third while the hard sessions stay, so you arrive fresh.',
+  'Race week': 'Short and sharp. Rest the day before, then race.',
+};
 function renderTraining(A) {
   const quiz = !S.ans || S.quiz;
   $('#quiz').hidden = !quiz; $('#plan').hidden = quiz;
   if (quiz) { renderQuiz(A); return; }
-  const a = S.ans, u = a.unit, Uu = u === 'km' ? KM : MI, thisWk = weekKey();
-  if (!a.created) { a.created = thisWk; store.set('oval-answers', a); }
-  const allActs = store.get('oval-activities', []), history = {};
-  allActs.forEach(x => { const k = weekKey(new Date(x.date + 'T12:00:00')); if (k < thisWk) history[k] = (history[k] || 0) + x.m / Uu; });
-  const recent = allActs.filter(x => (Date.now() - new Date(x.date + 'T12:00:00')) / 864e5 < 31).reduce((m, x) => Math.max(m, x.m / Uu), 0);
-  const P = seasonPlan({ ...a, today: new Date(), start: a.created, history, longestRecent: recent }), n = P.weeks.length;
-  const nowIdx = Math.max(0, P.weeks.findIndex(w => w.start === thisWk));
+  const C = season(A), { P, a, u, Uu, nowIdx } = C, n = P.weeks.length, thisWk = weekKey(), today = isoDay(new Date());
   if (S.wk.offset == null) S.wk.offset = nowIdx;
   S.wk.offset = Math.max(0, Math.min(n - 1, S.wk.offset));
-  const loggedBy = {}; allActs.forEach(x => { const k = weekKey(new Date(x.date + 'T12:00:00')); loggedBy[k] = (loggedBy[k] || 0) + x.m / Uu; });
-  const w = P.weeks[S.wk.offset], goal = a.goal, gl = { mile: 'mile', '5k': '5K', '10k': '10K', half: 'half marathon', marathon: 'marathon', fit: 'fitness block' }[goal];
+  const acts = store.get('oval-activities', []), loggedBy = {};
+  acts.forEach(x => { const k = weekKey(new Date(x.date + 'T12:00:00')); loggedBy[k] = (loggedBy[k] || 0) + x.m / Uu; });
+  const actualOn = iso => acts.filter(x => x.date === iso).reduce((s, x) => s + x.m, 0) / Uu;
+  const goal = a.goal, gl = { mile: 'mile', '5k': '5K', '10k': '10K', half: 'half marathon', marathon: 'marathon', fit: 'fitness block' }[goal];
   $('#pl-title').textContent = P.raceWeek ? `Your ${gl} plan` : goal === 'fit' ? 'Your 12-week fitness block' : `Your 12-week ${gl} block`;
-  const daysLeft = P.raceWeek ? Math.ceil((new Date(a.date + 'T12:00:00') - new Date()) / 864e5) : null;
+  const daysLeft = P.raceWeek ? Math.ceil((new Date(a.date + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
   $('#pl-sub').textContent = P.raceWeek ? `${daysLeft} days to go: race day is ${new Date(a.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}. Building from ${P.weeks[0].volume} to about ${P.peak} ${u} a week.${P.shortRunway ? ` That is short of the ${P.target} ${u} a week a ${a.level} runner usually peaks at for this race, so treat it as a finish plan, or pick a later race.` : ''}` : `Building from ${P.weeks[0].volume} to about ${P.peak} ${u} a week, then hold or set a race.`;
+
+  // today, front and centre
+  const tp = planForWeek(A, nowIdx), ti = (new Date().getDay() + 6) % 7, td = P.weeks[nowIdx]?.start === thisWk ? tp.days[ti] : null, tAct = actualOn(today);
+  const nextDay = td ? (ti < 6 ? tp.days[ti + 1] : planForWeek(A, nowIdx + 1)?.days[0]) : null;
+  if (!td) $('#today').innerHTML = `<p class="sub">Your plan starts on ${md(new Date(P.weeks[0].start + 'T12:00:00'))}.</p>`;
+  else $('#today').innerHTML = `<div class="tmain ty-${td.type}"><span class="tl">Today, ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+      <h3>${td.title}${td.dist ? `<span class="tdist">${td.type === 'race' ? td.dist.toFixed(1) : td.dist} ${u}</span>` : ''}</h3><p>${td.detail}</p>${td.strength ? '<p class="tstr">Plus strength work afterwards: see Stretches and strength.</p>' : ''}
+      <div class="tact">${tAct ? `<span class="logged big">Logged ${tAct.toFixed(1)} ${u}. Nice work.</span>` : td.type === 'rest' ? '<span class="pl">Rest is part of the plan.</span>' : `<button type="button" class="btn" data-log="${today}" data-d="${td.dist}" data-t="${td.type}">Log today's run</button>`}</div></div>
+    ${nextDay ? `<div class="tnext"><span class="tl">Tomorrow</span><b>${nextDay.title}</b>${nextDay.dist ? `<span>${nextDay.type === 'race' ? nextDay.dist.toFixed(1) : nextDay.dist} ${u}</span>` : ''}</div>` : ''}`;
+
   $('#season').innerHTML = seasonChart(P, S.wk.offset, nowIdx, loggedBy, u); tip($('#season'));
-  const isRace = P.raceWeek && w.start === P.raceWeek, rd = isRace ? (new Date(a.date + 'T12:00:00').getDay() + 6) % 7 : null;
-  const race = isRace && goal !== 'fit' ? { day: rd, m: byId(goal === 'mile' ? 'mile' : goal).m, label: byId(goal === 'mile' ? 'mile' : goal).label } : null;
-  const plan = weekPlan(A.V, { volume: w.volume, unit: u, days: +a.days, level: a.level, focus: goal === 'fit' ? '5k' : goal, longCap: w.longCap, longDay: a.longDay, maxQuality: w.quality, race });
+  const w = P.weeks[S.wk.offset], plan = planForWeek(A, S.wk.offset);
   const mon = new Date(w.start + 'T12:00:00'), dd = i => { const d = new Date(mon); d.setDate(d.getDate() + i); return d; };
   $('#wk-range').textContent = `${S.wk.offset === nowIdx ? 'This week' : `Week ${S.wk.offset + 1} of ${n}`}, ${md(dd(0))} to ${md(dd(6))}`;
   $('#wk-prev').disabled = S.wk.offset === 0; $('#wk-next').disabled = S.wk.offset === n - 1;
-  $('#wk-sum').innerHTML = `<b>${w.phase}</b>: ${plan.total.toFixed(0)} ${u} planned, about ${Math.round(plan.easyShare * 100)}% easy.${w.adapted ? ' Adjusted to what you ran last week.' : ''}`;
-  const acts = store.get('oval-activities', []), U = UM();
+  $('#wk-sum').innerHTML = `<b>${w.phase}</b>: ${plan.total.toFixed(0)} ${u} planned, about ${Math.round(plan.easyShare * 100)}% easy.${w.adapted ? ' Adjusted to what you ran last week.' : ''} <span class="pl">${PHASE_NOTE[w.phase] || ''}</span>`;
   const notes = plan.note ? [plan.note] : [];
-  if (w.start === weekKey() && S.wk.offset > 0 && !w.adapted) {
-    const prev = P.weeks[S.wk.offset - 1], ran = acts.filter(x => weekKey(new Date(x.date + 'T12:00:00')) === prev.start).reduce((s, x) => s + x.m, 0) / U;
+  if (w.start === thisWk && S.wk.offset > 0 && !w.adapted) {
+    const prev = P.weeks[S.wk.offset - 1], ran = loggedBy[prev.start] || 0;
     if (acts.length && ran < prev.volume * 0.7) notes.push(`Last week you logged ${ran.toFixed(1)} of ${prev.volume} ${u}. If you missed runs, repeat last week rather than building on it.`);
     else if (ran > prev.volume * 1.25) notes.push(`Last week you logged ${ran.toFixed(1)} ${u}, well over the ${prev.volume} planned. Keep this week easy and on plan.`);
   }
-  const LR = loadRatio(acts); if (w.start === weekKey() && LR.enough && LR.ratio > 1.5) notes.push(`Your last 7 days are ${LR.ratio.toFixed(1)}× your 4-week average. Ease off for a few days before adding more.`);
+  const LR = loadRatio(acts); if (w.start === thisWk && LR.enough && LR.ratio > 1.5) notes.push(`Your last 7 days are ${LR.ratio.toFixed(1)}× your 4-week average. Ease off for a few days before adding more.`);
   $('#wk-note').hidden = !notes.length; $('#wk-note').textContent = notes.join(' ');
-  const actualOn = iso => acts.filter(x => x.date === iso).reduce((s, x) => s + x.m, 0) / U;
   let done = 0, ticked = 0;
   $('#week').innerHTML = plan.days.map((d, i) => { const iso = isoDay(dd(i)), act = actualOn(iso); if (act) { done += act; if (d.type !== 'rest') ticked++; }
+    const missed = !act && iso < today && d.type !== 'rest', isToday = iso === today;
     const dist = d.dist ? `${d.type === 'race' ? d.dist.toFixed(1) : d.dist} ${u}` : '–';
-    const log = act ? `<span class="logged">Logged ${act.toFixed(1)} ${u}</span>` : d.type === 'rest' ? '' : `<button type="button" class="ghostbtn txt" data-log="${iso}" data-d="${d.dist}" data-t="${d.type}">Log</button>`;
-    return `<li class="${d.type}${act ? ' done' : ''}"><span class="d"><b>${d.day}</b><small>${md(dd(i))}</small></span>
-      <span class="s"><b><i class="k" aria-hidden="true"></i>${d.title}</b>${d.strength ? '<span class="tag">+ strength</span>' : ''}<p>${d.detail}</p></span>
+    const log = act ? `<span class="logged">Logged ${act.toFixed(1)} ${u}</span>` : d.type === 'rest' ? '' : iso > today ? '' : `<button type="button" class="ghostbtn txt" data-log="${iso}" data-d="${d.dist}" data-t="${d.type}">Log</button>`;
+    return `<li class="${d.type}${act ? ' done' : ''}${missed ? ' missed' : ''}${isToday ? ' istoday' : ''}"><span class="d"><b>${d.day}</b><small>${isToday ? 'Today' : md(dd(i))}</small></span>
+      <span class="s"><b><i class="k" aria-hidden="true"></i>${d.title}</b>${d.strength ? '<span class="tag">+ strength</span>' : ''}${missed ? '<span class="tag miss">missed</span>' : ''}<p>${d.detail}</p></span>
       <span class="km">${dist}</span><span class="log">${log}</span></li>`; }).join('');
-  const runs = plan.days.filter(d => d.type !== 'rest').length;
-  $('#wk-done').innerHTML = `Logged <b>${done.toFixed(1)} of ${plan.total.toFixed(0)} ${u}</b> this week, ${ticked} of ${runs} runs done.`;
+  const runs = plan.days.filter(d => d.type !== 'rest').length, f = Math.min(1, done / (plan.total || 1));
+  $('#wk-done').innerHTML = `<span class="bar"><i style="width:${(f * 100).toFixed(1)}%"></i></span><span>Logged <b>${done.toFixed(1)} of ${plan.total.toFixed(0)} ${u}</b>, ${ticked} of ${runs} runs done.</span>`;
 }
 
-// ------------------------------------------------------------------ log
-const TYPE_LABEL = { easy: 'Easy run', long: 'Long run', quality: 'Workout', race: 'Race', cross: 'Cross-training' };
-function renderLog() {
-  const acts = store.get('oval-activities', []).sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : y.id - x.id)), u = unitOf(), U = UM();
-  document.querySelectorAll('.lg-u').forEach(e => e.textContent = u);
-  if (!$('#lg-date').value) $('#lg-date').value = isoDay(new Date());
-  $('#lg-feel').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === S.feel));
-  const thisWk = weekKey(), monthKey = isoDay(new Date()).slice(0, 7);
-  const sum = f => acts.filter(f).reduce((s, x) => s + x.m, 0) / U;
-  const wk = sum(x => weekKey(new Date(x.date + 'T12:00:00')) === thisWk), mo = sum(x => x.date.startsWith(monthKey)), all = sum(() => true);
-  const timed = acts.filter(x => x.s && x.m), pace = timed.length ? timed.reduce((s, x) => s + x.s, 0) / (timed.reduce((s, x) => s + x.m, 0) / U) : 0;
-  // streak: consecutive days with a run, ending today (or yesterday, so it survives until tonight's run)
-  const days = new Set(acts.map(x => x.date)); let streak = 0; const d0 = new Date(); if (!days.has(isoDay(d0))) d0.setDate(d0.getDate() - 1);
-  while (days.has(isoDay(d0))) { streak++; d0.setDate(d0.getDate() - 1); }
-  $('#lg-stats').innerHTML = [[wk.toFixed(1), `${u} this week`], [mo.toFixed(1), `${u} this month`], [String(streak), streak === 1 ? 'day streak' : 'day streak'], [pace ? fmt(pace) : '–', `average pace per ${u}`]].map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('');
-  const allMi = all * U / MI, longest = acts.reduce((m, x) => Math.max(m, x.m), 0) / U;
-  const trips = [[26.2188, 'marathons'], [382, 'of the drive from San Francisco to Los Angeles'], [2451, 'of the way across the United States'], [24901, 'of the way around the Earth']];
-  const big = trips.filter(([d]) => allMi >= d * 0.05).pop();
-  $('#lg-mile').innerHTML = !acts.length ? '' : `${all.toFixed(1)} ${u} in all, across ${acts.length} ${acts.length === 1 ? 'run' : 'runs'}. Longest: ${longest.toFixed(1)} ${u}.` + (big ? (big[1] === 'marathons' ? ` That is ${(allMi / big[0]).toFixed(1)} marathons.` : ` That is ${Math.round(allMi / big[0] * 100)}% ${big[1]}.`) : '');
-  // fitness and load from the log
-  const L = loadRatio(acts), BE = bestEffort(acts, vdot), A0 = analyse(), fit = [];
-  if (BE) fit.push(['', `<b>VDOT ${BE.v.toFixed(1)}</b><span>fitness from your best run in the last 6 weeks (${(BE.a.m / U).toFixed(1)} ${u} in ${fmt(BE.a.s)} on ${md(new Date(BE.a.date + 'T12:00:00'))})${A0 ? `. Your races say ${A0.V.toFixed(1)}.` : ''}</span>`]);
-  if (L.enough && L.ratio != null) { const r = L.ratio, warn = r > 1.5;
-    fit.push([warn ? 'warn' : '', `<b>${r.toFixed(2)}×</b><span>your last 7 days (${(L.acute / U).toFixed(1)} ${u}) against your 4-week average (${(L.chronic / U).toFixed(1)} ${u}). ${warn ? 'A big jump. Consider an easier few days: sudden spikes in running are a common route to injury.' : r < 0.8 ? 'Lighter than usual, which is fine for a recovery or taper week.' : 'A steady, sensible load.'}</span>`]); }
-  else if (acts.length) fit.push(['', `<b>Building</b><span>Log about three weeks of runs and Oval will compare each week with your recent average.</span>`]);
-  $('#lg-fit').hidden = !fit.length; $('#lg-fit').innerHTML = fit.map(([c, h]) => `<div class="${c}">${h}</div>`).join('');
+// ------------------------------------------------------------------ log glue: PR offers, fitness card
+function offerPR(m, t, quiet = false) {
+  const d = DISTANCES.find(x => Math.abs(x.m - m) <= x.m * 0.01); if (!d) return;
+  const cur = S.prs.find(p => p[0] === d.id && parseTime(p[1]) > 0), old = cur ? parseTime(cur[1]) : 0;
+  if (quiet && !old) return;
+  if (!old || t < old - 0.5) S.newPR = { id: d.id, t, old };
+}
+function renderPRBanner() {
   const pr = S.newPR; $('#lg-pr').hidden = !pr;
   if (pr) $('#lg-pr').innerHTML = `<b>New ${byId(pr.id).label} PR: ${fmt(pr.t)}.</b> ${pr.old ? `That beats your ${fmt(pr.old)}.` : 'Oval does not have a time for this distance yet.'} <button type="button" class="btn" id="lg-pr-add">Add to your races</button> <button type="button" class="linkbtn quiet" id="lg-pr-no">Not now</button>`;
-  // last 12 weeks
-  const weeks = [...Array(12)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - 7 * (11 - i)); return weekKey(d); });
-  const vols = weeks.map(k => sum(x => weekKey(new Date(x.date + 'T12:00:00')) === k));
-  const plannedBy = {};
-  if (S.ans) { try { const Pp = seasonPlan({ ...S.ans, today: new Date(), start: S.ans.created || weekKey() }); Pp.weeks.forEach(w => { plannedBy[w.start] = w.volume * ((S.ans.unit === 'km' ? KM : MI) / U); }); } catch {} }
-  const plans = weeks.map(k => plannedBy[k] || 0), mx = Math.max(1, ...vols, ...plans) * 1.18, W = 1000, H = 200, top = 22, base = H - 26, bw = W / 12;
-  const Y = v => base - v / mx * (base - top), anim = animOnce('log', JSON.stringify([vols, plans]));
-  $('#lg-chart').innerHTML = svg(W, H, `<line x1="0" x2="${W}" y1="${base}" y2="${base}" stroke="var(--rule)"/>` + vols.map((v, i) => { const x = i * bw + bw * .16, bwid = bw * .68, p = plans[i];
-    return `<g data-tip="Week of ${md(new Date(weeks[i] + 'T12:00:00'))}: ${v.toFixed(1)} ${u} logged${p ? `, ${p.toFixed(0)} planned` : ''}"><rect x="${i * bw}" y="0" width="${bw}" height="${H}" fill="transparent"/>
-      ${p ? `<rect x="${x}" y="${Y(p)}" width="${bwid}" height="${base - Y(p)}" rx="3" fill="none" stroke="var(--field)" stroke-width="1.5" stroke-dasharray="4 3"/>` : ''}
-      <rect class="${anim ? 'grow' : ''}" style="${anim ? `animation-delay:${i * 60}ms` : ''}" x="${x}" y="${Y(v)}" width="${bwid}" height="${Math.max(base - Y(v), v ? 2 : 0)}" rx="3" fill="${i === 11 ? 'var(--track)' : 'var(--ink2)'}"/>
-      ${v ? `<text class="vlab${anim ? ' fade' : ''}" style="${anim ? `animation-delay:${i * 60 + 400}ms` : ''}" x="${x + bwid / 2}" y="${Y(Math.max(v, p)) - 6}" text-anchor="middle">${v.toFixed(v < 10 ? 1 : 0)}${p ? `<tspan class="of"> / ${p.toFixed(0)}</tspan>` : ''}</text>` : p ? `<text class="vlab" x="${x + bwid / 2}" y="${Y(p) - 6}" text-anchor="middle"><tspan class="of">${p.toFixed(0)}</tspan></text>` : ''}
-      ${i % 3 === 0 || i === 11 ? `<text x="${x + bwid / 2}" y="${H - 6}" text-anchor="middle">${i === 11 ? 'this week' : md(new Date(weeks[i] + 'T12:00:00'))}</text>` : ''}</g>`; }).join(''))
-    + `<div class="legend"><span><i style="background:var(--ink2)"></i>Logged</span>${Object.keys(plannedBy).length ? '<span><i class="dash"></i>Planned</span>' : ''}<span class="lu">${u} per week</span></div>`; tip($('#lg-chart'));
-  $('#lg-empty').hidden = acts.length > 0;
-  $('#lg-list').innerHTML = acts.slice(0, 60).map(x => { const d = x.m / U;
-    return `<li><span class="rd"><b>${new Date(x.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</b><small>${TYPE_LABEL[x.type] || x.type}</small></span>
-      <span class="rn">${x.notes ? esc(x.notes) : ''}${x.feel ? `<small>Felt ${x.feel}</small>` : ''}</span>
-      <span class="rv"><b>${d.toFixed(1)} ${u}</b>${x.s ? `<small>${fmt(x.s)}${d ? `, ${fmt(x.s / d)}/${u}` : ''}</small>` : ''}</span>
-      <button type="button" class="rm" data-del="${x.id}" aria-label="Delete this run">&times;</button>${x.splits && x.splits.length ? `<details><summary>${x.splits.length} splits${x.gain ? `, ${Math.round(x.gain * (u === 'mi' ? 3.28084 : 1))} ${u === 'mi' ? 'ft' : 'm'} climb` : ''}</summary><ol class="splits">${(() => { const k = (x.splitUnit || U) / U, best = Math.min(...x.splits), flat = best === Math.max(...x.splits); return x.splits.map((t, i) => `<li class="${t === best && !flat ? 'fast' : ''}"><small>${x.splitUnit && Math.abs(x.splitUnit - U) > 1 ? (x.splitUnit > 1500 ? 'mi' : 'km') : u} ${i + 1}</small>${fmt(t / k)}</li>`).join(''); })()}</ol></details>` : ''}</li>`; }).join('');
 }
+function renderFit(acts) {
+  const U = UM(), u = unitOf(), Lr = loadRatio(acts), BE = bestEffort(acts, vdot), A0 = analyse(), fit = [];
+  if (BE) fit.push(['', `<b>VDOT ${BE.v.toFixed(1)}</b><span>fitness from your best run in the last 6 weeks (${(BE.a.m / U).toFixed(1)} ${u} in ${fmt(BE.a.s)} on ${md(new Date(BE.a.date + 'T12:00:00'))})${A0 ? `. Your races say ${A0.V.toFixed(1)}.` : ''}</span>`]);
+  if (Lr.enough && Lr.ratio != null) { const r = Lr.ratio, warn = r > 1.5;
+    fit.push([warn ? 'warn' : '', `<b>${r.toFixed(2)}×</b><span>your last 7 days (${(Lr.acute / U).toFixed(1)} ${u}) against your 4-week average (${(Lr.chronic / U).toFixed(1)} ${u}). ${warn ? 'A big jump. Consider an easier few days: sudden spikes in running are a common route to injury.' : r < 0.8 ? 'Lighter than usual, which is fine for a recovery or taper week.' : 'A steady, sensible load.'}</span>`]); }
+  else if (acts.length) fit.push(['', `<b>Building</b><span>Log about three weeks of runs and Oval will compare each week with your recent average.</span>`]);
+  $('#lg-fit').hidden = !fit.length; $('#lg-fit').innerHTML = fit.map(([c, h]) => `<div class="${c}">${h}</div>`).join('');
+}
+const selectSubById = id => { const b = document.querySelector(`[data-sub="${id}"]`); if (b) selectSub(b); };
+let LOG = null;
 
 // ------------------------------------------------------------------ race fueling
 function renderFuel(A) {
@@ -710,7 +718,7 @@ function update() {
   document.body.dataset.state = ready ? 'ready' : 'empty';
   $('#verdict').hidden = $('#me-more').hidden = $('#vd').hidden = !ready;
   TABS.forEach(t => { if (t !== 'me' && t !== 'log') $(`#tab-${t}`).setAttribute('aria-disabled', !ready); });
-  renderLog();
+  LOG.render(); renderPRBanner();
   if (!ready) { if (S.tab !== 'me') showTab('me'); return; }
   renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderRacePlan(A); renderTraining(A); renderFuel(A); renderData(A);
   const key = `${A.best.d.id}:${A.best.s}:${S.sex}:${S.ghostDist}:${JSON.stringify(S.friends)}`;
@@ -737,19 +745,6 @@ function wire() {
     err.textContent = ''; S.friends.push({ name, d: d.id, t }); saveFriends(S.friends); $('#gh-fname').value = $('#gh-ftime').value = ''; update(); };
   $('#gh-friends').onclick = e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.friends.splice(+b.dataset.rm, 1); saveFriends(S.friends); update(); };
   $('#card').onclick = downloadCard;
-  const importFiles = async files => { const acts = store.get('oval-activities', []), U = UM(); let added = 0, dup = 0, bad = 0;
-    for (const f of files) { const text = await f.text(), name = f.name.toLowerCase(); let list = [];
-      try { if (name.endsWith('.csv')) list = parseStrava(text); else { const r = parseTrack(text, U); if (r) list = [{ ...r, splitUnit: U }]; } } catch { list = []; }
-      if (!list.length) bad++;
-      for (const r of list) { if (isDuplicate(acts, r)) { dup++; continue; } acts.push({ id: Date.now() + added, type: r.m > 25000 ? 'long' : 'easy', feel: null, ...r }); added++; } }
-    store.set('oval-activities', acts);
-    $('#lg-imp').textContent = `Added ${added} ${added === 1 ? 'run' : 'runs'}.${dup ? ` Skipped ${dup} already in your log.` : ''}${bad ? ` ${bad} ${bad === 1 ? 'file' : 'files'} had no run data.` : ''}`;
-    update(); renderLog(); };
-  $('#lg-file').onchange = e => importFiles([...e.target.files]).then(() => { e.target.value = ''; });
-  const drop = $('#lg-drop');
-  ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
-  ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
-  drop.addEventListener('drop', e => importFiles([...e.dataTransfer.files]));
   $('#fuelform').oninput = e => { if (e.target.id === 'fu-time') e.target.dataset.auto = '0'; update(); };
   $('#fu-race').onchange = () => { $('#fu-time').dataset.auto = '1'; update(); };
   $('#fu-units').onclick = e => { const b = e.target.closest('button'); if (b) { S.fuelUnits = b.dataset.v; update(); } };
@@ -763,25 +758,13 @@ function wire() {
     if (Q.type === 'date') { S.draft.date = inp.value; if (S.qi >= qs.length - 1) quizAnswer(inp.value); else S.qi++; update(); return; }
     if (inp && quizAnswer(inp.value)) update(); else if (inp) inp.focus(); };
   $('#q-back').onclick = () => { if (S.qi === 0) { S.quiz = false; } else S.qi--; update(); };
-  $('#week').onclick = e => { const b = e.target.closest('[data-log]'); if (!b) return;
-    $('#lg-date').value = b.dataset.log; $('#lg-dist').value = b.dataset.d || ''; $('#lg-type').value = ['long', 'quality', 'race'].includes(b.dataset.t) ? b.dataset.t : 'easy';
-    showTab('log'); scrollTo({ top: 0 }); $('#lg-dist').focus(); };
-  $('#lg-feel').onclick = e => { const b = e.target.closest('button'); if (b) { S.feel = S.feel === b.dataset.v ? null : b.dataset.v; renderLog(); } };
-  $('#logform').onsubmit = e => { e.preventDefault(); const err = $('#lg-err'), date = $('#lg-date').value, dist = parseFloat($('#lg-dist').value), tRaw = $('#lg-time').value.trim(), t = tRaw ? parseTime(tRaw) : 0, type = $('#lg-type').value;
-    if (!date) { err.textContent = 'Pick a date.'; return; }
-    if (!(dist > 0) && type !== 'cross') { err.textContent = 'Enter how far you ran.'; $('#lg-dist').focus(); return; }
-    if (tRaw && !(t > 0)) { err.textContent = 'Time looks off. Use h:mm:ss or mm:ss.'; $('#lg-time').focus(); return; }
-    err.textContent = '';
-    const acts = store.get('oval-activities', []); acts.push({ id: Date.now(), date, type, m: (dist || 0) * UM(), s: t || 0, feel: S.feel, notes: $('#lg-notes').value.trim() }); store.set('oval-activities', acts);
-    // a race at a standard distance faster than your PR (or a distance you have not entered) becomes a new PR offer
-    if (type === 'race' && t > 0) { const m = dist * UM(), d = DISTANCES.find(x => Math.abs(x.m - m) <= x.m * 0.01);
-      if (d) { const cur = S.prs.find(p => p[0] === d.id && parseTime(p[1]) > 0), old = cur ? parseTime(cur[1]) : 0; if (!old || t < old) S.newPR = { id: d.id, t, old }; } }
-    $('#lg-dist').value = $('#lg-time').value = $('#lg-notes').value = ''; S.feel = null; update(); renderLog(); };
-  $('#lg-pr').onclick = e => { if (e.target.id === 'lg-pr-no') { S.newPR = null; renderLog(); return; } if (e.target.id !== 'lg-pr-add') return;
+  $('#plan').onclick = e => { const b = e.target.closest('[data-log]'); if (!b) return;
+    showTab('log'); scrollTo({ top: 0 });
+    LOG.openForm({ date: b.dataset.log, dist: b.dataset.d && +b.dataset.d ? b.dataset.d : '', type: ['long', 'quality', 'race'].includes(b.dataset.t) ? b.dataset.t : 'easy' }); };
+  $('#lg-pr').onclick = e => { if (e.target.id === 'lg-pr-no') { S.newPR = null; renderPRBanner(); return; } if (e.target.id !== 'lg-pr-add') return;
     const { id, t } = S.newPR, i = S.prs.findIndex(p => p[0] === id), v = fmt(t, t < 600 ? 1 : 0).replace(/\.0$/, '');
     if (i >= 0) S.prs[i][1] = v; else { const blank = S.prs.findIndex(p => !(parseTime(p[1]) > 0)); if (blank >= 0) S.prs[blank] = [id, v]; else S.prs.push([id, v]); }
-    S.newPR = null; S.submitted = true; S.ghostDist = null; renderBib(); update(); renderLog(); };
-  $('#lg-list').onclick = e => { const b = e.target.closest('[data-del]'); if (!b) return; store.set('oval-activities', store.get('oval-activities', []).filter(x => x.id !== +b.dataset.del)); update(); renderLog(); };
+    S.newPR = null; S.submitted = true; S.ghostDist = null; renderBib(); update(); };
   $('#routines').innerHTML = Object.values(ROUTINES).map(r => `<section class="routine"><h3>${r.title}</h3><p class="t">${r.time}</p><ol>${r.items.map(([a, b]) => `<li><span>${a}</span><span>${b}</span></li>`).join('')}</ol></section>`).join('');
   $('#play').onclick = play;
   $('#unitseg').querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', x.dataset.unit === S.unit));
@@ -806,7 +789,10 @@ function wire() {
 fetch('races.json').then(r => r.json()).then(data => {
   D = data;
   if (!fromHash()) { S.prs = [['5k', '']]; S.sex = 'all'; }
+  LOG = createLog({ $, esc, num, fmt, parseTime, vdot, DISTANCES, byId, weekKey, store, isoDay, md, tip, svg, animOnce, S,
+    unitOf, UM, update, renderBib, offerPR, renderFit, selectSubById, parseTrack, parseStrava, isDuplicate, planWeek: planWeekByStart });
   S.friends = loadFriends(); S.ans = store.get('oval-answers', null); S.draft = S.ans ? { ...S.ans } : {}; S.qi = 0; S.quiz = false; S.feel = null;
   document.querySelectorAll('[data-n=all]').forEach(e => e.textContent = num(D.n)); document.querySelectorAll('[data-nm]').forEach(e => e.textContent = `${(D.n / 1e6).toFixed(1)}M`);
-  wire(); renderBib(); showTab(S.tab); update();
+  wire(); LOG.wire(); renderBib();
+  let rz = 0, lastW = innerWidth; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (Math.abs(innerWidth - lastW) > 40) { lastW = innerWidth; update(); } }, 200); }); showTab(S.tab); update();
 }).catch(() => { $('#v-head').textContent = 'Could not load race data.'; });

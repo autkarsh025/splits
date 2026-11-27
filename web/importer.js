@@ -8,15 +8,48 @@ export function haversine(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+/** Standard distances for best efforts, in metres (Strava-style "fastest stretch within any run"). */
+export const EFFORTS = { '400m': 400, '1k': 1000, mile: 1609.344, '5k': 5000, '10k': 10000, half: 21097.5, marathon: 42195 };
+
+/**
+ * Fastest time for each standard distance within a track, by sliding a window over cumulative distance.
+ * cum[i] = metres from the start to point i, t[i] = ms. Linear interpolation at the window's far end.
+ */
+export function bestEfforts(cum, t) {
+  const out = {}, n = cum.length;
+  for (const [id, D] of Object.entries(EFFORTS)) {
+    if (cum[n - 1] < D) continue;
+    let best = Infinity, j = 0;
+    for (let i = 0; i < n; i++) {
+      while (j < n && cum[j] - cum[i] < D) j++;
+      if (j >= n) break;
+      const over = cum[j] - cum[i] - D, seg = cum[j] - cum[j - 1] || 1;
+      const tEnd = t[j] - over / seg * (t[j] - t[j - 1]);
+      best = Math.min(best, (tEnd - t[i]) / 1000);
+    }
+    if (isFinite(best) && best > 0) out[id] = Math.round(best);
+  }
+  return out;
+}
+
+/** Keep at most `max` points for drawing (every k-th point, always the last). [lat, lon, ele, seconds from start, metres] */
+export function simplify(pts, cum, max = 400) {
+  const k = Math.max(1, Math.ceil(pts.length / max)), out = [], t0 = pts[0].t;
+  for (let i = 0; i < pts.length; i += k) out.push([+pts[i].lat.toFixed(5), +pts[i].lon.toFixed(5), isFinite(pts[i].ele) ? Math.round(pts[i].ele) : null, Math.round((pts[i].t - t0) / 1000), Math.round(cum[i])]);
+  const L = pts.length - 1; if ((L % k) !== 0) out.push([+pts[L].lat.toFixed(5), +pts[L].lon.toFixed(5), isFinite(pts[L].ele) ? Math.round(pts[L].ele) : null, Math.round((pts[L].t - t0) / 1000), Math.round(cum[L])]);
+  return out;
+}
+
 /** Summary of a track: distance, elapsed and moving time, elevation gain, and splits every `unit` metres. */
 export function summarize(points, unit = 1609.344) {
   const pts = points.filter(p => isFinite(p.lat) && isFinite(p.lon) && p.t);
   if (pts.length < 2) return null;
   let m = 0, moving = 0, gain = 0, ref = pts[0].ele, next = unit, lastSplitT = pts[0].t;
+  const cum = [0];
   const splits = [];
   for (let i = 1; i < pts.length; i++) {
     const a = pts[i - 1], b = pts[i], d = haversine(a, b), dt = (b.t - a.t) / 1000;
-    m += d;
+    m += d; cum.push(m);
     if (dt > 0 && dt < 30 && d / dt > 0.8) moving += dt;  // count time only while actually running
     // elevation gain with a 3 m dead band, so GPS noise does not pile up
     if (isFinite(b.ele) && isFinite(ref)) { if (b.ele - ref > 3) { gain += b.ele - ref; ref = b.ele; } else if (ref - b.ele > 3) ref = b.ele; }
@@ -24,7 +57,8 @@ export function summarize(points, unit = 1609.344) {
   }
   const elapsed = (pts[pts.length - 1].t - pts[0].t) / 1000;
   const d0 = new Date(pts[0].t);
-  return { date: `${d0.getFullYear()}-${String(d0.getMonth() + 1).padStart(2, '0')}-${String(d0.getDate()).padStart(2, '0')}`, m, s: Math.round(moving || elapsed), elapsed: Math.round(elapsed), gain: Math.round(gain), splits };
+  const hr = d0.getHours();
+  return { date: `${d0.getFullYear()}-${String(d0.getMonth() + 1).padStart(2, '0')}-${String(d0.getDate()).padStart(2, '0')}`, start: d0.toISOString(), daypart: hr < 5 ? 'Night' : hr < 12 ? 'Morning' : hr < 17 ? 'Afternoon' : hr < 21 ? 'Evening' : 'Night', m, s: Math.round(moving || elapsed), elapsed: Math.round(elapsed), gain: Math.round(gain), splits, best: bestEfforts(cum, pts.map(p => p.t)), track: simplify(pts, cum) };
 }
 
 function points(doc, tag) {
@@ -42,7 +76,7 @@ export function parseTrack(text, unit, Parser = globalThis.DOMParser) {
   const sum = summarize(points(doc, isTcx ? 'Trackpoint' : 'trkpt'), unit);
   if (!sum) return null;
   const name = doc.getElementsByTagName('name')[0]?.textContent?.trim() || '';
-  return { ...sum, notes: name.slice(0, 80) };
+  return { ...sum, title: name.slice(0, 80) || `${sum.daypart} Run`, notes: '' };
 }
 
 /** Split one CSV line, honouring quotes. */
@@ -75,7 +109,7 @@ export function parseStrava(text) {
     let dist = parseFloat(r[iDist]); if (!(dist > 0)) return null;
     if (dist < 400) dist *= 1000;  // the first Distance column is in km
     const s = Math.round(parseFloat(r[iMoving]) || parseFloat(r[iElapsed]) || 0);
-    return { date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, m: dist, s, gain: Math.round(parseFloat(r[iGain]) || 0), notes: (r[iName] || '').slice(0, 80) };
+    return { date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, m: dist, s, gain: Math.round(parseFloat(r[iGain]) || 0), title: (r[iName] || 'Run').slice(0, 80), notes: '' };
   }).filter(Boolean);
 }
 
