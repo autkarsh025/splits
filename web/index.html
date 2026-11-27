@@ -43,7 +43,7 @@
     <div class="in top">
       <form class="entry" id="entry" autocomplete="off" aria-labelledby="title">
         <h1 id="title">How fast is your time, really?</h1>
-        <p class="lede">Put in a recent race. Oval ranks it against <b data-n="all">3.4 million</b> real marathon finishes and thousands of college runners, then builds your race plan and training week.</p>
+        <p class="lede">Put in a recent race. Oval ranks it against <b data-n="all">3.7 million</b> real marathon finishes and thousands of college runners, then builds your race plan and training week.</p>
         <div class="bib">
           <div class="bibhead"><span>Your races</span><span class="vd" id="vd" hidden>Fitness score (VDOT) <output id="vdot">&ndash;</output></span></div>
           <div class="prhead" aria-hidden="true"><span>Race</span><span>Time</span></div>
@@ -65,7 +65,7 @@
         <h2 id="v-head"></h2>
         <div class="ranks" id="ranks"></div>
         <p class="fine" id="v-note"></p>
-        <p class="next">Next: <button type="button" class="linkbtn" data-go="rank">see every ranking</button>, <button type="button" class="linkbtn" data-go="plan">plan your next race</button>, or <button type="button" class="linkbtn" data-go="train">get your training week</button>. <button type="button" id="share" class="linkbtn quiet">Copy link</button></p>
+        <p class="next">Next: <button type="button" class="linkbtn" data-go="rank">see every ranking</button>, <button type="button" class="linkbtn" data-go="plan">plan your next race</button>, or <button type="button" class="linkbtn" data-go="train">get your training week</button>. <button type="button" id="share" class="linkbtn quiet">Copy link</button> <button type="button" id="card" class="linkbtn quiet">Download your card</button></p>
       </section>
     </div>
   </section>
@@ -74,7 +74,7 @@
     <div class="in">
       <h2>What you get</h2>
       <div class="feats">
-        <div><span class="fnum">3.4M</span><h3>Rankings</h3><p>Your place in 11 big marathons, against college runners, and next to California&rsquo;s high school state champions.</p></div>
+        <div><span class="fnum" data-nm>3.7M</span><h3>Rankings</h3><p>Your place in 11 big marathons, against college runners, and next to California&rsquo;s high school state champions.</p></div>
         <div><span class="fnum">400 m</span><h3>Ghost race</h3><p>Watch yourself race the world record and the marathon field, lap by lap, in real time or sped up.</p></div>
         <div><span class="fnum">3 goals</span><h3>Race plan</h3><p>A safe, realistic and stretch goal for your next race, with checkpoint splits, pacing and race-morning notes.</p></div>
         <div><span class="fnum">7 days</span><h3>Training week</h3><p>A week of runs at your paces, about 80% easy, with stretches, strength work and a log to tick off.</p></div>
@@ -307,7 +307,9 @@
         <div class="gorow"><button type="submit" class="btn">Save run</button><span class="goerr" id="lg-err" role="alert"></span></div>
       </form>
       <div class="logout">
+        <div class="prbanner" id="lg-pr" hidden></div>
         <div class="logstats" id="lg-stats"></div>
+        <p class="milestone" id="lg-mile"></p>
         <h3>Last 12 weeks</h3>
         <div class="chart" id="lg-chart"></div>
         <h3>Your runs</h3>
@@ -330,7 +332,8 @@
         <button role="tab" aria-selected="false" data-sub="dt-src">Sources</button>
       </div>
       <div class="subpanel" id="dt-charts" role="tabpanel">
-        <p class="sub">Every finish in ten US marathons from 2000 to 2019, plus London from 2018 to 2023: <span data-n="all">3.4 million</span> in all.</p>
+        <p class="sub">Every finish in ten US marathons from 2000 to 2019, Boston from 2001 to 2014 and London from 2018 to 2023: <span data-n="all">3.7 million</span> in all.</p>
+        <div class="facts" id="facts"></div>
         <div class="three">
           <figure><figcaption id="cap-races"></figcaption><div class="chart" id="racemed"></div></figure>
           <figure><figcaption id="cap-age"></figcaption><div class="chart" id="agecurve"></div></figure>

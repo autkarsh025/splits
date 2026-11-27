@@ -327,3 +327,11 @@ body[data-state=ready] .teaser { display: none }
 .runs .rm { border: 0; background: none; color: var(--mute); font-size: 20px; border-radius: 6px; width: 32px; height: 32px } .runs .rm:hover { background: var(--soft); color: var(--ink) }
 @media (max-width: 900px) { .loglayout { grid-template-columns: minmax(0, 1fr) } .logform { position: static } .logstats { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 @media (max-width: 560px) { .runs li { grid-template-columns: minmax(0, 1fr) 100px 32px } .runs .rn { grid-column: 1 / -1; grid-row: 2 } }
+
+.prbanner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; background: var(--track-soft); border: 1px solid var(--track); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 15px }
+.prbanner .btn { padding: 7px 14px; font-size: 15px }
+.milestone { color: var(--ink2); font-size: 15px; margin: 10px 0 0 }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; margin: 0 0 30px; padding: 16px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule) }
+.facts b { display: block; font-size: 26px; font-weight: 700; color: var(--track-ink); font-variation-settings: "wdth" 110; font-variant-numeric: tabular-nums }
+.facts span { font-size: 14px; color: var(--ink2) }

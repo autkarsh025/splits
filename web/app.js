@@ -104,6 +104,52 @@ function ageGroup(age) {
   return e ? { lo, ...e } : null;
 }
 
+// ------------------------------------------------------------------ share card (PNG)
+async function downloadCard() {
+  const A = analyse(); if (!A) return;
+  await document.fonts.ready;
+  const W = 1200, H = 630, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  g.fillStyle = '#10141f'; g.fillRect(0, 0, W, H);
+  // a track across the bottom: eight lanes
+  g.fillStyle = '#ec5a3c'; g.fillRect(0, H - 120, W, 120);
+  g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 2; for (let i = 1; i < 8; i++) { g.beginPath(); g.moveTo(0, H - 120 + i * 15); g.lineTo(W, H - 120 + i * 15); g.stroke(); }
+  g.fillStyle = '#fff'; for (let i = 0; i < 8; i++) { g.fillRect(860 + (i % 2) * 8, H - 120 + i * 15, 8, 15); g.fillRect(868 - (i % 2) * 8, H - 120 + i * 15, 8, 15); }
+  const F = (w, px) => `${w} ${px}px Archivo, Helvetica, Arial, sans-serif`, b = A.best;
+  // logo
+  g.fillStyle = '#ec5a3c'; g.beginPath(); g.roundRect(70, 62, 66, 40, 20); g.fill(); g.fillStyle = '#10141f'; g.beginPath(); g.roundRect(80, 72, 46, 20, 10); g.fill();
+  g.fillStyle = '#eef0f4'; g.font = F(800, 36); g.fillText('Oval', 150, 96);
+  g.fillStyle = '#b9c0cc'; g.font = F(500, 28); g.fillText(`${b.d.label} in ${fmt(b.s)}`, 70, 180);
+  g.fillStyle = '#eef0f4'; g.font = F(800, 64);
+  g.fillText(b.d.id === 'marathon' ? `Faster than ${pctTxt(A.pct)}` : `Worth a ${fmt(A.marathon)} marathon`, 70, 260);
+  g.fillStyle = '#b9c0cc'; g.font = F(500, 30);
+  g.fillText(b.d.id === 'marathon' ? `of ${num(A.N)} marathon finishes` : `Faster than ${pctTxt(A.pct)} of ${num(A.N)} marathon finishes`, 70, 312);
+  const stats = [[A.V.toFixed(1), 'fitness score (VDOT)'], [`#${num(A.place)}`, 'marathon place, all-time field']];
+  const G = ageGrade(A); if (G) stats.push([`${G.pct.toFixed(1)}%`, 'age grade']);
+  stats.forEach(([v, l], i) => { g.fillStyle = '#ff8a6e'; g.font = F(800, 44); g.fillText(v, 70 + i * 330, 410); g.fillStyle = '#8590a2'; g.font = F(500, 22); g.fillText(l, 70 + i * 330, 442); });
+  g.fillStyle = '#ffffff'; g.font = F(600, 22); g.fillText('utkarshagarwal.dev/oval', W - 330, 96);
+  const a = document.createElement('a'); a.download = `oval-${b.d.id}-${fmt(b.s).replace(/:/g, '-')}.png`; a.href = c.toDataURL('image/png'); a.click();
+}
+
+// ------------------------------------------------------------------ age grade and Boston
+// 2025 road age-grading factors (Alan Jones, CC0): age standard = open standard / factor; grade = age standard / your time.
+function ageGrade(A) {
+  if (!D.agegrade || !S.age || S.sex === 'all') return null;
+  const T = D.agegrade[S.sex === 'men' ? 'M' : 'F'], age = Math.max(T.ages[0], Math.min(T.ages[1], Math.round(+S.age)));
+  const grade = (id, t) => { const f = T.f[id] && T.f[id][age - T.ages[0]]; return f ? { id, pct: T.oc[id] / f / t * 100, std: T.oc[id] / f, agt: t * f } : null; };
+  const own = A.prs.map(p => grade(p.d.id, p.s)).filter(Boolean).sort((x, y) => y.pct - x.pct)[0];
+  if (own) return own;
+  const t5 = predict(A.V, 5000), g = grade('5k', t5); return g ? { ...g, equiv: true } : null;
+}
+const gradeClass = p => (p >= 100 ? 'world record level' : p >= 90 ? 'world class' : p >= 80 ? 'national class' : p >= 70 ? 'regional class' : p >= 60 ? 'local class' : 'recreational');
+// B.A.A. standards for the 2027 and 2028 Boston Marathon (baa.org)
+const BQ = [[18, 10500, 12300], [35, 10800, 12600], [40, 11100, 12900], [45, 11700, 13500], [50, 12000, 13800], [55, 12600, 14400], [60, 13800, 15600], [65, 14700, 16500], [70, 15600, 17400], [75, 16500, 18300], [80, 17400, 19200]];
+function bq(A) {
+  if (!S.age || S.sex === 'all' || +S.age < 18) return null;
+  const row = [...BQ].reverse().find(r => +S.age >= r[0]), std = row[S.sex === 'men' ? 1 : 2];
+  const ag = D.age_q && D.age_q[`${S.sex}:${Math.max(18, Math.min(78, 18 + 5 * Math.floor((+S.age - 18) / 5)))}`];
+  return { share: ag ? 100 - fasterThan(ag.q, std) : null, std, margin: std - A.marathon, group: row[0] === 80 ? '80+' : `${row[0]}–${BQ[BQ.indexOf(row) + 1][0] - 1}` };
+}
+
 // ------------------------------------------------------------------ verdict
 function renderVerdict(A) {
   const b = A.best, sexWord = S.sex === 'men' ? 'men’s' : S.sex === 'women' ? 'women’s' : '';
@@ -137,10 +183,14 @@ function renderVerdict(A) {
     const diff = g[1] - A.marathon;
     rows.push([`${diff >= 0 ? '' : '+'}${fmt(Math.abs(diff))}`, `${diff >= 0 ? 'faster' : 'slower'} than the median ${g[0]}–${g[0] + 4} year old marathoner`, `Median ${fmt(g[1])}, ${num(g[2])} finishers`]);
   }
+  const G = ageGrade(A);
+  if (G) rows.push([`${G.pct.toFixed(1)}%`, `age grade: ${gradeClass(G.pct)} for a ${S.age}-year-old ${S.sex === 'men' ? 'man' : 'woman'}`, `${G.equiv ? 'From your 5K equivalent' : `Your ${byId(G.id).label}`}: worth ${fmt(G.agt)} at your peak age (2025 road factors)`]);
+  const Q = bq(A);
+  if (Q) rows.push([Q.margin >= 0 ? `−${fmt(Q.margin)}` : `+${fmt(-Q.margin)}`, Q.margin >= 0 ? `under your Boston qualifying time (${fmt(Q.std)})` : `away from a Boston qualifier (${fmt(Q.std)})`, `${S.sex === 'men' ? 'Men' : 'Women'} ${Q.group}, 2027 and 2028 standards${b.d.id === 'marathon' ? '' : ', using your marathon equivalent'}${Q.share != null ? `. ${Q.share.toFixed(0)}% of your age group in the data ran that fast` : ''}`]);
   const wr = wrFor(b.d);
   rows.push([`${((b.s / wr.t - 1) * 100).toFixed(0)}%`, `slower than the world record (${fmt(wr.t, wr.t < 1000 ? 2 : 0)})`, wr.who]);
   $('#ranks').innerHTML = rows.map(([v, t, s]) => `<div class="rank"><b>${v}</b><span>${t}</span><small>${esc(s)}</small></div>`).join('');
-  $('#v-note').textContent = b.d.id === 'marathon' ? '' : 'The marathon comparison assumes you trained for a marathon. The college comparison uses your actual race.';
+  $('#v-note').textContent = (b.d.id === 'marathon' ? '' : 'The marathon comparison assumes you trained for a marathon. The college comparison uses your actual race. ') + (S.age && S.sex !== 'all' ? '' : 'Add your age and pick men or women to see your age grade and Boston qualifying time.');
 }
 
 // ------------------------------------------------------------------ ghost race
@@ -448,7 +498,16 @@ function renderLog() {
   const sum = f => acts.filter(f).reduce((s, x) => s + x.m, 0) / U;
   const wk = sum(x => weekKey(new Date(x.date + 'T12:00:00')) === thisWk), mo = sum(x => x.date.startsWith(monthKey)), all = sum(() => true);
   const timed = acts.filter(x => x.s && x.m), pace = timed.length ? timed.reduce((s, x) => s + x.s, 0) / (timed.reduce((s, x) => s + x.m, 0) / U) : 0;
-  $('#lg-stats').innerHTML = [[wk.toFixed(1), `${u} this week`], [mo.toFixed(1), `${u} this month`], [String(acts.length), acts.length === 1 ? 'run logged' : 'runs logged'], [pace ? fmt(pace) : '–', `average pace per ${u}`]].map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('');
+  // streak: consecutive days with a run, ending today (or yesterday, so it survives until tonight's run)
+  const days = new Set(acts.map(x => x.date)); let streak = 0; const d0 = new Date(); if (!days.has(isoDay(d0))) d0.setDate(d0.getDate() - 1);
+  while (days.has(isoDay(d0))) { streak++; d0.setDate(d0.getDate() - 1); }
+  $('#lg-stats').innerHTML = [[wk.toFixed(1), `${u} this week`], [mo.toFixed(1), `${u} this month`], [String(streak), streak === 1 ? 'day streak' : 'day streak'], [pace ? fmt(pace) : '–', `average pace per ${u}`]].map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('');
+  const allMi = all * U / MI, longest = acts.reduce((m, x) => Math.max(m, x.m), 0) / U;
+  const trips = [[26.2188, 'marathons'], [382, 'of the drive from San Francisco to Los Angeles'], [2451, 'of the way across the United States'], [24901, 'of the way around the Earth']];
+  const big = trips.filter(([d]) => allMi >= d * 0.05).pop();
+  $('#lg-mile').innerHTML = !acts.length ? '' : `${all.toFixed(1)} ${u} in all, across ${acts.length} ${acts.length === 1 ? 'run' : 'runs'}. Longest: ${longest.toFixed(1)} ${u}.` + (big ? (big[1] === 'marathons' ? ` That is ${(allMi / big[0]).toFixed(1)} marathons.` : ` That is ${Math.round(allMi / big[0] * 100)}% ${big[1]}.`) : '');
+  const pr = S.newPR; $('#lg-pr').hidden = !pr;
+  if (pr) $('#lg-pr').innerHTML = `<b>New ${byId(pr.id).label} PR: ${fmt(pr.t)}.</b> ${pr.old ? `That beats your ${fmt(pr.old)}.` : 'Oval does not have a time for this distance yet.'} <button type="button" class="btn" id="lg-pr-add">Add to your races</button> <button type="button" class="linkbtn quiet" id="lg-pr-no">Not now</button>`;
   // last 12 weeks
   const weeks = [...Array(12)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - 7 * (11 - i)); return weekKey(d); });
   const vols = weeks.map(k => sum(x => weekKey(new Date(x.date + 'T12:00:00')) === k)), mx = Math.max(1, ...vols) * 1.15, W = 680, H = 150, bw = W / 12;
@@ -495,7 +554,8 @@ function renderRacePlan(A) {
   $('#po-why').innerHTML = why.map(w => `<li>${w}</li>`).join('');
   $('#po-phases').innerHTML = phases(d.m, goal, { unit, pacing: S.pacing }).map(p => `<li><b>${p.name[0].toUpperCase() + p.name.slice(1)}</b><p>${p.how}</p></li>`).join('');
   const C = checkpoints(d.m, goal, { unit, pacing: S.pacing });
-  $('#po-cp-hint').textContent = `Check your watch at each point. A few seconds either way is fine. ${C.drift ? 'The targets run the second half about 1% faster than the first.' : 'The targets are even pace.'}`;
+  const BS = D.boston_splits && D.boston_splits.n ? D.boston_splits : null;
+  $('#po-cp-hint').textContent = `Check your watch at each point. A few seconds either way is fine. ${C.drift ? 'The targets run the second half about 1% faster than the first.' : 'The targets are even pace.'}${BS && d.m > 20000 ? ` Most people do the opposite: at Boston in 2013 and 2014 only ${(BS.negative * 100).toFixed(1)}% of ${num(BS.n)} finishers ran the second half faster, and the typical runner slowed by ${(BS.median_slowdown * 100).toFixed(0)}%.` : ''}`;
   const cd = x => fmt(x, goal < 600 ? 1 : 0);
   $('#po-cp tbody').innerHTML = C.rows.map(r => `<tr${r.half ? ' class="me"' : ''}><td>${cpLabel(r, C.step, d.m, unit)}</td><td class="r t">${cd(r.cum)}</td><td class="r pl">${cd(r.lo)} to ${cd(r.hi)}</td></tr>`).join('');
   const R = raceDay(goal, d.m, G.adj.heat);
@@ -529,6 +589,12 @@ function showTab(id, focus = false) {
 }
 
 function renderData(A) {
+  const BS = D.boston_splits && D.boston_splits.n ? D.boston_splits : null, ag = D.agegrade;
+  const facts = [[num(D.n), 'marathon finishes in the data, across ' + D.races.length + ' races']];
+  if (BS) facts.push([`${(BS.negative * 100).toFixed(1)}%`, `of Boston finishers in 2013 and 2014 ran a faster second half (${num(BS.n)} with splits)`], [`+${(BS.median_slowdown * 100).toFixed(0)}%`, 'how much slower the typical Boston runner ran the second half']);
+  if (D.college) facts.push([num(Object.values(D.college).reduce((s, e) => s + (e.M ? e.M.n : 0) + (e.F ? e.F.n : 0), 0)), 'college club PRs across ' + Object.keys(D.college).length + ' events']);
+  if (ag) facts.push([fmt(ag.M.oc.marathon), 'the open standard behind 100% age grade in the marathon (men)']);
+  $('#facts').innerHTML = facts.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('');
   { const rs = [...D.races].sort((x, y) => x.q[100] - y.q[100]), f = rs[0], sl = rs[rs.length - 1];
     $('#cap-races').innerHTML = `<b>The fields are not equal.</b> The median finisher at ${f.name} runs ${fmt(f.q[100])}; at ${sl.name}, ${fmt(sl.q[100])}. The same time places very differently depending on the race.`; }
   $('#racemed').innerHTML = hbars(D.races.map(r => [r.name, r.q[100], r.n]).sort((a, b) => a[1] - b[1]), { you: A.marathon < 30000 ? A.marathon : null }); tip($('#racemed'));
@@ -541,6 +607,7 @@ function renderData(A) {
     $('#cap-years').innerHTML = dm > 0 ? `<b>The typical marathoner got slower.</b> The median finish went from ${fmt(y0[1])} in ${y0[0]} to ${fmt(y1[1])} in ${y1[0]} as the fields grew.` : `<b>The typical marathoner got faster.</b> The median went from ${fmt(y0[1])} in ${y0[0]} to ${fmt(y1[1])} in ${y1[0]}.`; $('#years').innerHTML = lineChart(yrs, { xfmt: String }); tip($('#years')); }
   $('#sources').innerHTML = (D.sources || []).map(s => `<li>${esc(s)}</li>`).join('');
   document.querySelectorAll('[data-n=all]').forEach(e => e.textContent = num(D.n));
+  document.querySelectorAll('[data-nm]').forEach(e => e.textContent = `${(D.n / 1e6).toFixed(1)}M`);
 }
 
 function renderGoals(A) {
@@ -606,6 +673,7 @@ function wire() {
     if (S.friends.filter(f => f.d === d.id).length >= 3) { err.textContent = 'Up to 3 friends per distance. Remove one first.'; return; }
     err.textContent = ''; S.friends.push({ name, d: d.id, t }); saveFriends(S.friends); $('#gh-fname').value = $('#gh-ftime').value = ''; update(); };
   $('#gh-friends').onclick = e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.friends.splice(+b.dataset.rm, 1); saveFriends(S.friends); update(); };
+  $('#card').onclick = downloadCard;
   document.querySelectorAll('.subtabs').forEach(bar => bar.onclick = e => { const b = e.target.closest('[role=tab]'); if (b) selectSub(b); });
   $('#wk-prev').onclick = () => { S.wk.offset--; update(); };
   $('#wk-next').onclick = () => { S.wk.offset++; update(); };
@@ -626,7 +694,14 @@ function wire() {
     if (tRaw && !(t > 0)) { err.textContent = 'Time looks off. Use h:mm:ss or mm:ss.'; $('#lg-time').focus(); return; }
     err.textContent = '';
     const acts = store.get('oval-activities', []); acts.push({ id: Date.now(), date, type, m: (dist || 0) * UM(), s: t || 0, feel: S.feel, notes: $('#lg-notes').value.trim() }); store.set('oval-activities', acts);
+    // a race at a standard distance faster than your PR (or a distance you have not entered) becomes a new PR offer
+    if (type === 'race' && t > 0) { const m = dist * UM(), d = DISTANCES.find(x => Math.abs(x.m - m) <= x.m * 0.01);
+      if (d) { const cur = S.prs.find(p => p[0] === d.id && parseTime(p[1]) > 0), old = cur ? parseTime(cur[1]) : 0; if (!old || t < old) S.newPR = { id: d.id, t, old }; } }
     $('#lg-dist').value = $('#lg-time').value = $('#lg-notes').value = ''; S.feel = null; update(); renderLog(); };
+  $('#lg-pr').onclick = e => { if (e.target.id === 'lg-pr-no') { S.newPR = null; renderLog(); return; } if (e.target.id !== 'lg-pr-add') return;
+    const { id, t } = S.newPR, i = S.prs.findIndex(p => p[0] === id), v = fmt(t, t < 600 ? 1 : 0).replace(/\.0$/, '');
+    if (i >= 0) S.prs[i][1] = v; else { const blank = S.prs.findIndex(p => !(parseTime(p[1]) > 0)); if (blank >= 0) S.prs[blank] = [id, v]; else S.prs.push([id, v]); }
+    S.newPR = null; S.submitted = true; S.ghostDist = null; renderBib(); update(); renderLog(); };
   $('#lg-list').onclick = e => { const b = e.target.closest('[data-del]'); if (!b) return; store.set('oval-activities', store.get('oval-activities', []).filter(x => x.id !== +b.dataset.del)); update(); renderLog(); };
   $('#routines').innerHTML = Object.values(ROUTINES).map(r => `<section class="routine"><h3>${r.title}</h3><p class="t">${r.time}</p><ol>${r.items.map(([a, b]) => `<li><span>${a}</span><span>${b}</span></li>`).join('')}</ol></section>`).join('');
   $('#play').onclick = play;
@@ -656,5 +731,6 @@ fetch('races.json').then(r => r.json()).then(data => {
   D = data;
   if (!fromHash()) { S.prs = [['5k', '']]; S.sex = 'all'; }
   S.friends = loadFriends(); S.ans = store.get('oval-answers', null); S.draft = S.ans ? { ...S.ans } : {}; S.qi = 0; S.quiz = false; S.feel = null;
+  document.querySelectorAll('[data-n=all]').forEach(e => e.textContent = num(D.n)); document.querySelectorAll('[data-nm]').forEach(e => e.textContent = `${(D.n / 1e6).toFixed(1)}M`);
   wire(); renderBib(); showTab(S.tab); update();
 }).catch(() => { $('#v-head').textContent = 'Could not load race data.'; });

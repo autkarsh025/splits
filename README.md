@@ -11,8 +11,10 @@ Put in one or more race PRs, from 800 m to the marathon, and Oval shows:
 - **Your PR profile**: which PR is really your best, and whether you lean toward speed or endurance
 - **Six pages** (Your times, Rankings, Ghost race, Race plan, Training, The data) under tabs at the top
 - **Training plan from a few questions**: goal, race date, current mileage, longest run, days, long-run day, experience and injuries. Builds every week to race day with easier weeks and a two-week taper (Bosquet et al. 2007), whole-number distances, about 80% easy (Seiler) with Daniels' limits on long runs and hard sessions. Tick off runs and log actual distance; the log stays in your browser. Warm-up, cool-down stretches and a twice-weekly strength routine
-- **Log**: record runs by hand (distance, time, type, feel, notes); weekly totals and a 12-week chart; logged runs tick off the plan
+- **Log**: record runs by hand (distance, time, type, feel, notes); streaks, weekly totals, a 12-week chart and distance milestones; logged runs tick off the plan, and a logged race faster than your PR offers to update your races
 - **Ghost race** at any distance with real college runners per event and your friends
+- **Age grade and Boston qualifying**: add your age and sex for your age-graded percentage (2025 road factors by Alan Jones, CC0) and how far you are from a 2027/2028 Boston qualifier
+- **Shareable card**: download a PNG of your results
 - **Race plan builder**: pick a race, course, forecast and how bold to be. Oval sets a goal from your races (leaning on the one closest in distance), then writes the plan: how to run each phase, checkpoint splits with an on-track window, warmup, gels and drinks. Prints on one page with a pace band
 - **Equivalent times** at every distance (VDOT and Riegel), **training paces**, a **goal finder** and a **pace converter**
 
@@ -52,3 +54,6 @@ npm test            # model tests (Node 22)
 python3 build.py    # assemble public/
 python3 -m http.server -d public
 ```
+
+
+Additional data: Boston Marathon results 2001-2014 from baa.org, collected by Bill Mill (github.com/llimllib/bostonmarathon, MIT). Road age-grading factors 2025 by Alan Jones (github.com/AlanLyttonJones/age-grade-tables, CC0). Boston qualifying standards for 2027 and 2028 from baa.org.
