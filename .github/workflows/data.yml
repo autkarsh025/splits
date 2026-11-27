@@ -1,0 +1,38 @@
+name: data
+# Rebuilds data/races.json from open race results (CC BY 4.0). Runs monthly and on demand.
+on:
+  workflow_dispatch:
+    inputs:
+      discover:
+        description: "Only print the college dataset layout"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "23 9 3 * *"
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas numpy openpyxl
+      - if: ${{ inputs.discover }}
+        working-directory: data
+        run: python discover_nrcd.py
+      - if: ${{ !inputs.discover }}
+        run: python data/build_data.py
+      - if: ${{ !inputs.discover }}
+        name: Commit data
+        run: |
+          git config user.name "splits data bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/races.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Rebuild race distributions"
+          for i in 1 2 3; do git pull --rebase -q && git push -q && exit 0; sleep 5; done
+          exit 1
