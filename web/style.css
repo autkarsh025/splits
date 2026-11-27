@@ -8,8 +8,8 @@
   --accent: var(--track-ink); --accent-soft: var(--track-soft);
   --f: "Archivo", "Helvetica Neue", Arial, sans-serif;
 }
-:root[data-theme=night] { --paper: #121614; --soft: #1a201d; --ink: #ecebe6; --ink2: #c3c1ba; --mute: #8c8a84; --rule: #2a312d; --track: #c4503a; --track-ink: #f07a62; --track-soft: #3a2420; --infield: #1f2c23; --board: #1a201d }
-@media (prefers-color-scheme: dark) { :root:not([data-theme=day]) { --paper: #121614; --soft: #1a201d; --ink: #ecebe6; --ink2: #c3c1ba; --mute: #8c8a84; --rule: #2a312d; --track: #c4503a; --track-ink: #f07a62; --track-soft: #3a2420; --infield: #1f2c23; --board: #1a201d } }
+:root[data-theme=night] { --paper: #0e2a1e; --soft: #143627; --ink: #f5efdf; --ink2: #cfd8c9; --mute: #8fa89a; --rule: #22493a; --track: #e0644a; --track-ink: #ff8a6e; --track-soft: #3a3020; --infield: #1d5238; --board: #143627; --you: #ffd23f }
+@media (prefers-color-scheme: dark) { :root:not([data-theme=day]) { --paper: #0e2a1e; --soft: #143627; --ink: #f5efdf; --ink2: #cfd8c9; --mute: #8fa89a; --rule: #22493a; --track: #e0644a; --track-ink: #ff8a6e; --track-soft: #3a3020; --infield: #1d5238; --board: #143627; --you: #ffd23f } }
 * { box-sizing: border-box; min-width: 0 }
 [hidden] { display: none !important }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 17px/1.55 var(--f); -webkit-font-smoothing: antialiased; overflow-x: clip }
@@ -65,7 +65,7 @@ h1, h2, h3 { font-variation-settings: "wdth" 112; margin: 0 }
 .pr { margin-bottom: 8px }
 .pr select, .pr input, .who select, .who input, .field select, .field input, .pair input, .conv input, .conv select {
   height: 44px; border: 1px solid #c9c6bf; border-radius: 6px; background: var(--paper); padding: 0 10px; width: 100%; font-size: 17px }
-:root[data-theme=night] :is(.pr select, .pr input, .who select, .who input, .field select, .field input, .pair input, .conv input, .conv select) { border-color: #3a423d }
+:root[data-theme=night] :is(.pr select, .pr input, .who select, .who input, .field select, .field input, .pair input, .conv input, .conv select) { border-color: #2f5e4a }
 .pr input { font-weight: 700; font-size: 19px; text-align: right; font-variant-numeric: tabular-nums }
 input:focus, select:focus { outline: none; border-color: var(--track) !important; box-shadow: 0 0 0 3px var(--track-soft) }
 .pr input[aria-invalid=true] { border-color: var(--track) } .pr .err { grid-column: 1 / -1; font-size: 14px; color: var(--track-ink); margin-top: -2px }
@@ -95,7 +95,7 @@ table.results tr.me td { background: var(--track-soft) }
 table.results tr.me td:first-child { box-shadow: inset 3px 0 0 var(--track); padding-left: 10px }
 table.results .pl { font-size: 13px; color: var(--mute) }
 .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid #c9c6bf; border-radius: 6px; overflow: hidden; margin: 0 0 14px }
-:root[data-theme=night] .seg { border-color: #3a423d }
+:root[data-theme=night] .seg { border-color: #2f5e4a }
 .seg button { border: 0; background: var(--paper); padding: 6px 13px; font-size: 15px; font-weight: 600; color: var(--ink2) }
 .seg button + button { border-left: 1px solid var(--rule) }
 .seg button:hover { color: var(--ink) }
@@ -196,4 +196,20 @@ table.results .pl { font-size: 13px; color: var(--mute) }
   body { font-size: 12pt }
   .band { display: block; margin-top: 18px; border: 1px dashed #888; padding: 8px 10px; width: fit-content; font-size: 10pt }
   .band table { border-collapse: collapse } .band td { padding: 1px 10px 1px 0 }
+}
+
+/* night: the infield under floodlights. Highlights glow yellow, like the "you" runner. */
+:root[data-theme=night] { color-scheme: dark }
+:root[data-theme=night] table.results tr.me td { background: rgba(255,210,63,.10) }
+:root[data-theme=night] table.results tr.me td:first-child { box-shadow: inset 3px 0 0 var(--you) }
+:root[data-theme=night] .bibhead { background: rgba(255,210,63,.10) }
+:root[data-theme=night] .bib, :root[data-theme=night] .bibhead { border-color: #4f7d68 }
+:root[data-theme=night] .mast::after { background-color: var(--track) }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme=day]) { color-scheme: dark }
+  :root:not([data-theme=day]) table.results tr.me td { background: rgba(255,210,63,.10) }
+  :root:not([data-theme=day]) table.results tr.me td:first-child { box-shadow: inset 3px 0 0 var(--you) }
+  :root:not([data-theme=day]) .bibhead { background: rgba(255,210,63,.10) }
+  :root:not([data-theme=day]) .bib, :root:not([data-theme=day]) .bibhead { border-color: #4f7d68 }
+  :root:not([data-theme=day]) :is(.pr select, .pr input, .who select, .who input, .field select, .field input, .pair input, .conv input, .conv select), :root:not([data-theme=day]) .seg { border-color: #2f5e4a }
 }

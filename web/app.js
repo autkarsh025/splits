@@ -281,7 +281,7 @@ function renderFields(A) {
   if (!seg.children.length) { seg.innerHTML = ['all', 'men', 'women'].map(k => `<button role="radio" data-f="${k}" aria-checked="${k === S.field}">${k === 'all' ? 'Everyone' : k[0].toUpperCase() + k.slice(1)}</button>`).join(''); seg.onclick = e => { const b = e.target.closest('button'); if (!b) return; S.field = b.dataset.f; update(); }; }
   seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', b.dataset.f === S.field));
   const q = D[S.field], n = S.field === 'men' ? D.n_men : S.field === 'women' ? D.n_women : D.n;
-  $('#dist-sub').textContent = `${num(n)} finishes, grouped by 5 minutes. Darker bars are the finishers you beat.`;
+  $('#dist-sub').textContent = `${num(n)} finishes, grouped by 5 minutes. Every bar to the right of your line is runners you beat.`;
   $('#dist').innerHTML = histogram(q, A.marathon, { lo: 7200, hi: 25200, bin: 300, ticks: [7200, 10800, 14400, 18000, 21600, 25200], label: `You ${fmt(A.marathon)}` }); tip($('#dist'));
 }
 
