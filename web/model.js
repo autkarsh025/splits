@@ -1,4 +1,4 @@
-// Splits: the running model. Pure functions, no DOM; used by the page and by the tests.
+// Oval: the running model. Pure functions, no DOM; used by the page and by the tests.
 //
 // VDOT: Daniels & Gilbert (1979), "Oxygen Power". Oxygen cost of running at velocity v (m/min) and the
 // fraction of VO2max sustainable for t minutes; VDOT = cost / fraction. Inverting it predicts equal

@@ -1,4 +1,4 @@
-"""Assemble the static site into public/ (served at utkarshagarwal.dev/splits/).
+"""Assemble the static site into public/ (served at utkarshagarwal.dev/oval/).
 
 Every asset URL gets a ?v= stamp from a hash of the source files, so a browser never mixes
 a new page with cached old styles or scripts.

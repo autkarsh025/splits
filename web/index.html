@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Splits: how fast is your time, really?</title>
+<title>Oval: how fast is your time, really?</title>
 <meta name="description" content="Rank any race time against 3.4 million real marathon finishes and college runners' PRs, race the world record, build a race plan, and get your training paces.">
-<meta property="og:title" content="Splits">
+<meta property="og:title" content="Oval">
 <meta property="og:description" content="How fast is your time, really? Real race data, a ghost race against the world record, race plans and training paces.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23d9533b'/%3E%3Cpath d='M5 11h22M5 16h22M5 21h22' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='6' width='30' height='20' rx='10' fill='%23d9533b'/%3E%3Crect x='3' y='8' width='26' height='16' rx='8' fill='none' stroke='%23fff' stroke-width='1'/%3E%3Crect x='5.5' y='10.5' width='21' height='11' rx='5.5' fill='%231d5238'/%3E%3Cpath d='M21 24v2' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
 <script>try{const t=localStorage.getItem('splits-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
@@ -17,7 +17,7 @@
 <a class="skip" href="#pages">Skip to content</a>
 <header class="mast">
   <div class="in bar">
-    <a class="name" href="./"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Splits</a>
+    <a class="name" href="./"><svg class="logo" viewBox="0 0 44 26" aria-hidden="true"><rect width="44" height="26" rx="13" class="lg-track"/><rect x="2" y="2" width="40" height="22" rx="11" class="lg-lane"/><rect x="4" y="4" width="36" height="18" rx="9" class="lg-lane"/><rect x="6.5" y="6.5" width="31" height="13" rx="6.5" class="lg-infield"/><line x1="30" y1="22" x2="30" y2="26" class="lg-finish"/></svg>Oval</a>
     <nav class="tabs" role="tablist" aria-label="Pages">
       <button role="tab" id="tab-me" aria-controls="p-me" aria-selected="true">Your times</button>
       <button role="tab" id="tab-rank" aria-controls="p-rank" aria-selected="false" tabindex="-1">Rankings</button>
@@ -42,7 +42,7 @@
     <div class="in top">
       <form class="entry" id="entry" autocomplete="off" aria-labelledby="title">
         <h1 id="title">How fast is your time, really?</h1>
-        <p class="lede">Put in your recent races. Splits ranks them against <b data-n="all">3.4 million</b> real marathon finishes and thousands of college runners.</p>
+        <p class="lede">Put in your recent races. Oval ranks them against <b data-n="all">3.4 million</b> real marathon finishes and thousands of college runners.</p>
         <div class="bib">
           <div class="bibhead"><span>Your races</span><span class="vd">Fitness score (VDOT) <output id="vdot">&ndash;</output></span></div>
           <div class="prhead" aria-hidden="true"><span>Race</span><span>Time</span></div>
@@ -142,7 +142,7 @@
     <div class="in planlayout">
       <form class="planform" id="planform" autocomplete="off" aria-label="Race plan settings">
         <h2>Build a race plan</h2>
-        <p class="hint">Tell Splits about the race. The plan updates as you change anything.</p>
+        <p class="hint">Tell Oval about the race. The plan updates as you change anything.</p>
         <label class="field">Which race?<select id="plan-dist"></select></label>
         <fieldset class="field"><legend>Course</legend><div class="seg" data-key="course"><button type="button" data-v="flat">Flat</button><button type="button" data-v="rolling">Rolling</button><button type="button" data-v="hilly">Hilly</button></div></fieldset>
         <fieldset class="field"><legend>Race-day forecast</legend>
@@ -202,7 +202,7 @@
     <div class="in two">
       <div id="goals">
         <h2>Goal finder</h2>
-        <p class="sub">Pick how much of the marathon field you want to beat. Splits works out the times that take at every distance, and how far you are from each.</p>
+        <p class="sub">Pick how much of the marathon field you want to beat. Oval works out the times that take at every distance, and how far you are from each.</p>
         <label class="goal">Faster than <output id="goal-out">90%</output> of <span id="goal-field">marathoners</span>
           <input id="goal" type="range" min="50" max="99.9" step="0.1" value="90"></label>
         <p class="goalhead" id="goal-head"></p>
@@ -254,7 +254,7 @@
 </main>
 
 <div class="band" id="band" aria-hidden="true"></div>
-<footer class="foot"><div class="in"><span>Splits</span><span>Data refreshed monthly from open race results. <a href="/">utkarshagarwal.dev</a></span></div></footer>
+<footer class="foot"><div class="in"><span>Oval</span><span>Data refreshed monthly from open race results. <a href="/">utkarshagarwal.dev</a></span></div></footer>
 <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -23,4 +23,4 @@ jobs:
       - name: Publish to the site
         env:
           SITE_DEPLOY_TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
-        run: bash deploy.sh splits public
+        run: bash deploy.sh oval public && bash deploy.sh splits redirect

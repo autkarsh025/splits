@@ -1,8 +1,8 @@
-# Splits
+# Oval
 
-**How fast is your time, really?** Live at [utkarshagarwal.dev/splits](https://utkarshagarwal.dev/splits/).
+**How fast is your time, really?** Live at [utkarshagarwal.dev/splits](https://utkarshagarwal.dev/oval/).
 
-Put in one or more race PRs, from 800 m to the marathon, and Splits shows:
+Put in one or more race PRs, from 800 m to the marathon, and Oval shows:
 
 - **Where you stand** against 3.49 million real marathon finishes (11 races, 2000 to 2023), by sex and age group, and your place in every one of those fields
 - **College runners**: your percentile among college club runners' PRs in the same event (track, cross country and road)
@@ -10,7 +10,7 @@ Put in one or more race PRs, from 800 m to the marathon, and Splits shows:
 - **A ghost race**: you against the world record and the top 1%, top 10% and median marathoners, animated on a 400 m track
 - **Your PR profile**: which PR is really your best, and whether you lean toward speed or endurance
 - **Six pages** (Your times, Rankings, Ghost race, Race plan, Training, The data) under tabs at the top
-- **Race plan builder**: pick a race, course, forecast and how bold to be. Splits sets a goal from your races (leaning on the one closest in distance), then writes the plan: how to run each phase, checkpoint splits with an on-track window, warmup, gels and drinks. Prints on one page with a pace band
+- **Race plan builder**: pick a race, course, forecast and how bold to be. Oval sets a goal from your races (leaning on the one closest in distance), then writes the plan: how to run each phase, checkpoint splits with an on-track window, warmup, gels and drinks. Prints on one page with a pace band
 - **Equivalent times** at every distance (VDOT and Riegel), **training paces**, a **goal finder** and a **pace converter**
 
 Everything recomputes as you type, and the URL holds your inputs so a result can be shared.

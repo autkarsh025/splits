@@ -1,4 +1,4 @@
-/* Splits. Light pages, one brick-red accent from the track, a thin lane stripe under the header,
+/* Oval. Light pages, one brick-red accent from the track, a thin lane stripe under the header,
    Archivo throughout (slightly wide for headings, normal for reading, narrow for tables). */
 :root {
   --paper: #ffffff; --soft: #f7f6f3; --ink: #1c1c1c; --ink2: #4a4a4a; --mute: #7a7a7a; --rule: #e4e2dd;
@@ -29,8 +29,11 @@ h1, h2, h3 { font-variation-settings: "wdth" 112; margin: 0 }
 .mast::after { content: ""; display: block; height: 7px; background: var(--track) repeating-linear-gradient(180deg, transparent 0 2px, rgba(255,255,255,.75) 2px 3px, transparent 3px 3.5px) }
 .bar { display: flex; align-items: center; gap: 28px; height: 60px }
 .name { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 20px; font-variation-settings: "wdth" 120; text-decoration: none; flex: none }
-.mark { display: grid; gap: 3px; align-content: center; width: 24px; height: 24px; padding: 0 4px; background: var(--track); border-radius: 5px }
-.mark i { display: block; height: 1.5px; background: #fff }
+.logo { width: 40px; height: 24px; flex: none }
+.lg-track { fill: var(--track) } .lg-lane { fill: none; stroke: #fff; stroke-width: .9; opacity: .85 }
+.lg-infield { fill: #1d5238 } .lg-finish { stroke: #fff; stroke-width: 1.6 }
+:root[data-theme=night] .lg-infield { fill: #2a7050 }
+@media (prefers-color-scheme: dark) { :root:not([data-theme=day]) .lg-infield { fill: #2a7050 } }
 .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; align-self: stretch; margin-right: auto }
 .tabs button { flex: none; border: 0; background: none; padding: 0 12px; font-size: 16px; font-weight: 600; color: var(--ink2); border-bottom: 3px solid transparent; border-top: 3px solid transparent }
 .tabs button:hover { color: var(--ink) }
