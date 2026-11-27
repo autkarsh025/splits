@@ -1,230 +1,199 @@
-/* Splits. Built from the furniture of a track meet: a red all-weather track with lane numbers,
-   a pinned race bib for your entry, a stadium scoreboard (dot-matrix digits) for your results,
-   heat-sheet bars over each section, and printed results tables. One family, Archivo, used at
-   three widths: expanded like a 1970s meet program, normal for reading, condensed like a results sheet. */
+/* Splits. Light pages, one brick-red accent from the track, a thin lane stripe under the header,
+   Archivo throughout (slightly wide for headings, normal for reading, narrow for tables). */
 :root {
-  --paper: #ffffff; --ink: #000000; --ink2: #3b3b3b; --mute: #767676; --rule: #d6d6d6; --soft: #f3f2ef;
-  --track: #c8462b; --track2: #ad3a22; --lane: rgba(255,255,255,.85);
-  --stadium: #1b3a2a; --infield: #2a5a3f;
-  --led: #ffb21a; --board: #0a0a0a;
-  --you: #ffd23f; --wr: #ffffff; --p1: #8cc8ff; --p10: #a8e6a0; --p50: #f2a7c3; --cif: #ff9a52;
-  --accent: var(--track); --accent-soft: #fff0b8;
+  --paper: #ffffff; --soft: #f7f6f3; --ink: #1c1c1c; --ink2: #4a4a4a; --mute: #7a7a7a; --rule: #e4e2dd;
+  --track: #d9533b; --track-ink: #b4412a; --track-soft: #fcebe6; --lane: #ffffff;
+  --infield: #dce9dc; --board: #ffffff;
+  --you: #f2b52c; --wr: #ffffff; --p1: #7fb8e8; --p10: #8fd18a; --p50: #ef9bb8; --cif: #f5944f;
+  --accent: var(--track-ink); --accent-soft: var(--track-soft);
   --f: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --dot: "Doto", "Courier New", monospace;
 }
-:root[data-theme=night] { --paper: #0f1612; --ink: #f2efe6; --ink2: #c6c2b8; --mute: #8d897f; --rule: #2b3530; --soft: #18211c; --track: #b8432b; --track2: #9d3822; --stadium: #0b1610; --infield: #183324; --accent: #ef6a4c; --accent-soft: #3a3214 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme=day]) { --paper: #0f1612; --ink: #f2efe6; --ink2: #c6c2b8; --mute: #8d897f; --rule: #2b3530; --soft: #18211c; --track: #b8432b; --track2: #9d3822; --stadium: #0b1610; --infield: #183324; --accent: #ef6a4c; --accent-soft: #3a3214 } }
+:root[data-theme=night] { --paper: #121614; --soft: #1a201d; --ink: #ecebe6; --ink2: #c3c1ba; --mute: #8c8a84; --rule: #2a312d; --track: #c4503a; --track-ink: #f07a62; --track-soft: #3a2420; --infield: #1f2c23; --board: #1a201d }
+@media (prefers-color-scheme: dark) { :root:not([data-theme=day]) { --paper: #121614; --soft: #1a201d; --ink: #ecebe6; --ink2: #c3c1ba; --mute: #8c8a84; --rule: #2a312d; --track: #c4503a; --track-ink: #f07a62; --track-soft: #3a2420; --infield: #1f2c23; --board: #1a201d } }
 * { box-sizing: border-box; min-width: 0 }
 [hidden] { display: none !important }
-html { scroll-padding-top: 70px }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 400 17px/1.55 var(--f); font-variation-settings: "wdth" 100; -webkit-font-smoothing: antialiased; overflow-x: clip }
-a { color: inherit; text-decoration-thickness: 1.5px; text-underline-offset: 3px } a:hover { color: var(--accent) }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 17px/1.55 var(--f); -webkit-font-smoothing: antialiased; overflow-x: clip }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px } a:hover { color: var(--track-ink) }
 button, input, select { font: inherit; color: inherit } button { cursor: pointer }
-:focus-visible { outline: 3px solid var(--you); outline-offset: 2px }
+:focus-visible { outline: 2.5px solid var(--track); outline-offset: 2px }
 .skip { position: absolute; left: -999px } .skip:focus { left: 12px; top: 12px; background: var(--ink); color: var(--paper); padding: 6px 10px; z-index: 30 }
-.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%) }
 .in { max-width: 1200px; margin: 0 auto; padding: 0 max(4vw, 18px) }
-h1, h2, h3, .mast .name { font-variation-settings: "wdth" 125 }
-.fine { font-size: 14px; color: var(--mute) }
+h1, h2, h3 { font-variation-settings: "wdth" 112; margin: 0 }
+.fine { font-size: 14px; color: var(--mute); margin: 8px 0 0 }
 .opt { font-weight: 400; color: var(--mute) }
+.kicker { font-size: 15px; font-weight: 600; color: var(--track-ink); margin: 0 0 6px }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--track-ink); font-weight: 600; font-size: 15px; text-decoration: underline; text-underline-offset: 3px }
 
-/* masthead */
-.mast { background: #000; color: #fff }
-.mast .in { display: flex; align-items: center; gap: 22px; height: 50px }
-.mast .name { font-weight: 900; font-size: 20px; letter-spacing: .01em; text-decoration: none; margin-right: auto; color: #fff }
-.mast nav { display: flex; gap: 20px; align-items: center; font-size: 15px; font-variation-settings: "wdth" 85 }
-.mast nav a { text-decoration: none; opacity: .8 } .mast nav a:hover { opacity: 1; color: var(--you) }
-#theme { background: none; border: 1.5px solid #fff; border-radius: 3px; padding: 2px 10px; font-size: 14px; color: #fff; font-variation-settings: "wdth" 85 }
-
-/* the track: red surface, white lane lines, lane numbers, a finish line */
-.track { position: relative; background: var(--track); color: #fff; overflow: hidden; isolation: isolate }
-.track::before { content: ""; position: absolute; inset: 0; z-index: -1; background: repeating-linear-gradient(180deg, transparent 0 calc(12.5% - 2px), var(--lane) calc(12.5% - 2px) 12.5%); opacity: .5 }
-.track::after { content: ""; position: absolute; top: 0; bottom: 0; right: 30%; width: 14px; z-index: -1; opacity: .5;
-  background: repeating-linear-gradient(180deg, #fff 0 7px, transparent 7px 14px) left / 7px 100% no-repeat, repeating-linear-gradient(180deg, transparent 0 7px, #fff 7px 14px) right / 7px 100% no-repeat }
-.lanes { position: absolute; left: max(1.4vw, 8px); top: 0; bottom: 0; display: grid; grid-template-rows: repeat(8, 1fr); z-index: -1 }
-.lanes span { display: flex; align-items: center; font: 900 clamp(20px, 2.6vw, 34px)/1 var(--f); font-variation-settings: "wdth" 125; color: rgba(255,255,255,.92); transform: rotate(-90deg) }
-.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, 450px); gap: clamp(28px, 5vw, 72px); align-items: center; padding-top: clamp(34px, 5vw, 64px); padding-bottom: clamp(34px, 5vw, 64px); padding-left: max(7vw, 64px) }
-.pitch h1 { font-weight: 850; font-size: clamp(36px, 4.6vw, 62px); line-height: 1.02; margin: 0 0 18px; max-width: 11em; text-wrap: balance }
-.pitch p { font-size: clamp(17px, 1.4vw, 19px); max-width: 31em; margin: 0 0 16px }
-.pitch b { font-weight: 700 }
-.examples { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 15px }
-.examples span { font-variation-settings: "wdth" 85; margin-right: 2px }
-.examples button { background: rgba(0,0,0,.24); border: 0; color: #fff; border-radius: 3px; padding: 5px 11px; font-size: 15px; font-weight: 600; font-variation-settings: "wdth" 85 }
-.examples button:hover { background: rgba(0,0,0,.42) }
-
-/* the bib */
-.bib { position: relative; background: #fff; color: #111; border-radius: 10px; padding: 24px 26px 20px; box-shadow: 0 2px 0 rgba(0,0,0,.14), 0 20px 40px -20px rgba(0,0,0,.6); transform: rotate(-1deg) }
-.pins i { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #d8d8d8; box-shadow: inset 0 1px 2px rgba(0,0,0,.5) }
-.pins i:nth-child(1) { left: 12px; top: 12px } .pins i:nth-child(2) { right: 12px; top: 12px } .pins i:nth-child(3) { left: 12px; bottom: 12px } .pins i:nth-child(4) { right: 12px; bottom: 12px }
-.bibtop { display: flex; justify-content: space-between; background: var(--track); color: #fff; margin: -4px 4px 10px; padding: 4px 12px; border-radius: 3px; font-size: 14px; font-weight: 700; font-variation-settings: "wdth" 85 }
-.bibnum { display: flex; align-items: center; justify-content: center; gap: 14px; border-bottom: 3px solid #111; padding-bottom: 6px; margin-bottom: 14px }
-.bibnum output { font: 900 clamp(64px, 7vw, 92px)/.95 var(--f); font-variation-settings: "wdth" 125; letter-spacing: -.01em; font-variant-numeric: tabular-nums }
-.bibnum span { font-size: 13px; line-height: 1.2; color: #555; font-variation-settings: "wdth" 85 }
-.prhead, .pr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 36px; gap: 8px; align-items: center }
-.prhead { font-size: 13px; font-weight: 600; color: #555; margin-bottom: 4px; font-variation-settings: "wdth" 85 }
-.pr { margin-bottom: 8px }
-.pr select, .pr input, .who select, .who input { height: 44px; border: 1.5px solid #111; border-radius: 3px; background: #fff; color: #111; padding: 0 10px; width: 100%; font-size: 17px }
-.pr select { font-weight: 600; font-variation-settings: "wdth" 85 }
-.pr input { font-weight: 800; font-size: 21px; font-variation-settings: "wdth" 110; font-variant-numeric: tabular-nums; text-align: right }
-.pr input:focus, .pr select:focus, .who select:focus, .who input:focus { outline: none; box-shadow: 0 0 0 3px var(--you) }
-.pr input[aria-invalid=true] { border-color: var(--track); color: var(--track) } .pr .err { grid-column: 1 / -1; font-size: 14px; color: var(--track); margin-top: -2px }
-.pr .rm { width: 36px; height: 36px; border: 0; background: none; border-radius: 3px; color: #888; font-size: 22px; line-height: 1 } .pr .rm:hover { background: #f1f1f1; color: #111 }
-.add { border: 0; background: none; color: var(--track); font-weight: 700; padding: 4px 0; font-size: 15px; font-variation-settings: "wdth" 85 } .add:hover { text-decoration: underline }
-.who { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px }
-.who label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: #555; font-variation-settings: "wdth" 85 }
-.who select, .who input { font-size: 16px; font-weight: 500; font-variation-settings: "wdth" 100 }
-
-/* the scoreboard */
-.scoreboard { background: #000; color: #fff; padding: clamp(22px, 3vw, 34px) 0 }
-.sb-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(22px, 4vw, 52px); align-items: start }
-.led { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr); background: var(--board) radial-gradient(circle, #1c1c1c .8px, transparent 1px) 0 0 / 5px 5px; border: 3px solid #262626; border-radius: 6px }
-.cell { padding: 14px 16px 16px; border-right: 2px solid #222; display: flex; flex-direction: column; gap: 4px }
-.cell:last-child { border-right: 0 }
-.cell .k { font-size: 13px; color: #a6a6a6; font-variation-settings: "wdth" 80; font-weight: 600 }
-.cell b { font: 800 clamp(26px, 2.9vw, 42px)/1 var(--dot); color: var(--led); text-shadow: 0 0 10px rgba(255,178,26,.45); letter-spacing: .02em; white-space: nowrap }
-.cell .of { font-size: 13px; color: #a6a6a6; font-variation-settings: "wdth" 80 }
-.ranks { list-style: none; margin: 0; padding: 0; border-top: 3px solid #fff }
-.ranks li { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 14px; padding: 9px 0; border-bottom: 1px solid #333 }
-.ranks b { font-weight: 800; font-size: 22px; line-height: 1.2; font-variation-settings: "wdth" 110; font-variant-numeric: tabular-nums }
-.ranks span { font-size: 15px; line-height: 1.35; color: #e6e6e6 } .ranks small { display: block; color: #9a9a9a; font-size: 13px; margin-top: 1px; font-variation-settings: "wdth" 85 }
-.sumfoot { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; margin-top: 10px }
-.sumfoot .fine { color: #9a9a9a; margin: 0 }
-.linkbtn { border: 0; background: none; padding: 0; color: var(--you); font-weight: 600; font-size: 15px; text-decoration: underline; text-underline-offset: 3px }
-
-/* tabs: lane markers */
-.tabs { position: sticky; top: 0; z-index: 10; background: var(--paper); border-bottom: 3px solid var(--ink) }
-.tabs .in { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none }
-.tabs button { flex: none; display: flex; align-items: center; gap: 9px; border: 0; background: none; padding: 13px 16px 11px 0; margin-right: 10px; font-size: 17px; font-weight: 700; font-variation-settings: "wdth" 88; color: var(--ink2) }
-.tabs button i { font-style: normal; display: inline-grid; place-items: center; width: 28px; height: 28px; border: 2px solid currentColor; border-radius: 3px; font-weight: 900; font-size: 15px; font-variation-settings: "wdth" 125 }
+/* header: logo, page tabs, a thin strip of lanes underneath */
+.mast { position: sticky; top: 0; z-index: 10; background: var(--paper) }
+.mast::after { content: ""; display: block; height: 7px; background: var(--track) repeating-linear-gradient(180deg, transparent 0 2px, rgba(255,255,255,.75) 2px 3px, transparent 3px 3.5px) }
+.bar { display: flex; align-items: center; gap: 28px; height: 60px }
+.name { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 20px; font-variation-settings: "wdth" 120; text-decoration: none; flex: none }
+.mark { display: grid; gap: 3px; align-content: center; width: 24px; height: 24px; padding: 0 4px; background: var(--track); border-radius: 5px }
+.mark i { display: block; height: 1.5px; background: #fff }
+.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; align-self: stretch; margin-right: auto }
+.tabs button { flex: none; border: 0; background: none; padding: 0 12px; font-size: 16px; font-weight: 600; color: var(--ink2); border-bottom: 3px solid transparent; border-top: 3px solid transparent }
 .tabs button:hover { color: var(--ink) }
-.tabs button[aria-selected=true] { color: var(--ink) } .tabs button[aria-selected=true] i { background: var(--track); border-color: var(--track); color: #fff }
+.tabs button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--track) }
+.util { display: flex; align-items: center; gap: 16px; font-size: 15px; flex: none }
+.util a { color: var(--ink2); text-decoration: none } .util a:hover { color: var(--ink) }
+#theme { background: none; border: 1px solid var(--rule); border-radius: 99px; padding: 2px 12px; font-size: 14px; color: var(--ink2) }
+#theme:hover { border-color: var(--ink2) }
+.ctx { margin: 0; background: var(--soft); border-bottom: 1px solid var(--rule); font-size: 15px; color: var(--ink2) }
+.ctx .in { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; padding-top: 9px; padding-bottom: 9px } .ctx b { color: var(--ink) }
 
-/* sections: a heat-sheet bar over each one */
-.block { padding: clamp(32px, 4.5vw, 54px) 0 }
-.block + .block { padding-top: 0 }
-.head { margin-bottom: 16px }
-.head h2, .method h2, .planform h2 { background: var(--ink); color: var(--paper); font-size: clamp(17px, 1.5vw, 20px); font-weight: 800; line-height: 1.2; padding: 7px 12px 6px; margin: 0 0 10px; border-radius: 2px }
-.head p { color: var(--ink2); margin: 0; max-width: 46em }
+/* sections */
+.sec { padding: clamp(30px, 4vw, 48px) 0; border-bottom: 1px solid var(--rule) }
+.page > .sec:last-child { border-bottom: 0 }
+.sec h2 { font-size: clamp(22px, 2.1vw, 27px); font-weight: 700; line-height: 1.2; margin-bottom: 6px }
+.sub { color: var(--ink2); margin: 0 0 18px; max-width: 46em }
 .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px) }
 .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px }
 .three figure { margin: 0 } .three figcaption { font-size: 15px; color: var(--ink2); margin-bottom: 12px; min-height: 4.8em } .three figcaption b { color: var(--ink) }
 .scroll { overflow-x: auto }
 
-table.results { width: 100%; border-collapse: collapse; font-size: 16px; font-variation-settings: "wdth" 88 }
-table.results th { text-align: left; font-size: 13px; font-weight: 700; color: var(--ink2); padding: 6px 12px 6px 0; border-bottom: 2px solid var(--ink) }
+/* your times */
+.top { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); gap: clamp(28px, 5vw, 64px); align-items: start }
+.entry h1 { font-size: clamp(30px, 3.2vw, 40px); font-weight: 750; line-height: 1.1; margin-bottom: 8px }
+.lede { color: var(--ink2); margin: 0 0 18px; max-width: 32em }
+.bib { border: 1.5px solid var(--ink); border-radius: 8px; padding: 0 16px 16px; background: var(--paper) }
+.bibhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 -16px 14px; padding: 9px 16px; border-bottom: 1.5px solid var(--ink); border-radius: 6px 6px 0 0; background: var(--track-soft); font-weight: 700; font-size: 15px; font-variation-settings: "wdth" 110 }
+.bibhead .vd { font-weight: 500; font-size: 14px; color: var(--ink2); font-variation-settings: "wdth" 90 }
+.bibhead output { font-weight: 800; font-size: 20px; color: var(--ink); margin-left: 4px; font-variation-settings: "wdth" 115; font-variant-numeric: tabular-nums }
+.prhead, .pr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 36px; gap: 8px; align-items: center }
+.prhead { font-size: 13px; font-weight: 600; color: var(--ink2); margin-bottom: 4px }
+.pr { margin-bottom: 8px }
+.pr select, .pr input, .who select, .who input, .field select, .field input, .pair input, .conv input, .conv select {
+  height: 44px; border: 1px solid #c9c6bf; border-radius: 6px; background: var(--paper); padding: 0 10px; width: 100%; font-size: 17px }
+:root[data-theme=night] :is(.pr select, .pr input, .who select, .who input, .field select, .field input, .pair input, .conv input, .conv select) { border-color: #3a423d }
+.pr input { font-weight: 700; font-size: 19px; text-align: right; font-variant-numeric: tabular-nums }
+input:focus, select:focus { outline: none; border-color: var(--track) !important; box-shadow: 0 0 0 3px var(--track-soft) }
+.pr input[aria-invalid=true] { border-color: var(--track) } .pr .err { grid-column: 1 / -1; font-size: 14px; color: var(--track-ink); margin-top: -2px }
+.pr .rm { width: 36px; height: 36px; border: 0; background: none; border-radius: 6px; color: var(--mute); font-size: 22px; line-height: 1 } .pr .rm:hover { background: var(--soft); color: var(--ink) }
+.add { border: 0; background: none; color: var(--track-ink); font-weight: 600; padding: 4px 0; font-size: 15px } .add:hover { text-decoration: underline }
+.who { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px }
+.who label, .field { display: flex; flex-direction: column; gap: 5px; font-size: 14px; font-weight: 600; color: var(--ink2) }
+.examples { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 0; font-size: 15px; color: var(--ink2) }
+.examples button { border: 1px solid var(--rule); background: var(--soft); border-radius: 99px; padding: 3px 12px; font-size: 14px; color: var(--ink) }
+.examples button:hover { border-color: var(--track) }
+
+.verdict h2 { font-size: clamp(24px, 2.5vw, 32px); font-weight: 700; line-height: 1.2; margin-bottom: 20px; max-width: 22em }
+.verdict h2 em { font-style: normal; color: var(--track-ink) }
+.ranks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 2px solid var(--ink); margin-bottom: 10px }
+.rank { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--rule) }
+.rank b { display: block; font-size: 32px; font-weight: 750; line-height: 1.05; font-variation-settings: "wdth" 110; font-variant-numeric: tabular-nums }
+.rank span { display: block; font-size: 15px; color: var(--ink2); margin-top: 4px; line-height: 1.35 }
+.rank small { display: block; font-size: 13px; color: var(--mute); margin-top: 3px; font-variation-settings: "wdth" 90 }
+
+/* tables and controls */
+table.results { width: 100%; border-collapse: collapse; font-size: 16px; font-variation-settings: "wdth" 92 }
+table.results th { text-align: left; font-size: 13px; font-weight: 600; color: var(--ink2); padding: 6px 12px 6px 0; border-bottom: 1.5px solid var(--ink) }
 table.results td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--rule); vertical-align: baseline }
 table.results .r { text-align: right } table.results tr > :last-child { padding-right: 0 }
-table.results td.t { font-weight: 800; font-size: 18px; white-space: nowrap; font-variant-numeric: tabular-nums; font-variation-settings: "wdth" 105 }
-table.results tr.me td { background: var(--accent-soft) }
-table.results tr.me td:first-child { box-shadow: inset 4px 0 0 var(--track); padding-left: 12px }
+table.results td.t { font-weight: 700; font-size: 17px; white-space: nowrap; font-variant-numeric: tabular-nums; font-variation-settings: "wdth" 100 }
+table.results tr.me td { background: var(--track-soft) }
+table.results tr.me td:first-child { box-shadow: inset 3px 0 0 var(--track); padding-left: 10px }
 table.results .pl { font-size: 13px; color: var(--mute) }
-.seg { display: inline-flex; flex-wrap: wrap; border: 2px solid var(--ink); border-radius: 3px; overflow: hidden; margin: 0 0 14px }
-.seg button { border: 0; background: var(--paper); padding: 6px 13px; font-size: 15px; font-weight: 700; font-variation-settings: "wdth" 88 }
-.seg button + button { border-left: 2px solid var(--ink) }
-.seg button[aria-checked=true], .seg button[aria-pressed=true] { background: var(--ink); color: var(--paper) }
-.btn { border: 0; background: var(--track); color: #fff; border-radius: 3px; padding: 10px 18px; font-weight: 800; font-size: 16px; font-variation-settings: "wdth" 110 }
-.btn:hover { background: var(--track2) }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid #c9c6bf; border-radius: 6px; overflow: hidden; margin: 0 0 14px }
+:root[data-theme=night] .seg { border-color: #3a423d }
+.seg button { border: 0; background: var(--paper); padding: 6px 13px; font-size: 15px; font-weight: 600; color: var(--ink2) }
+.seg button + button { border-left: 1px solid var(--rule) }
+.seg button:hover { color: var(--ink) }
+.seg button[aria-checked=true], .seg button[aria-pressed=true] { background: var(--track-soft); color: var(--ink); box-shadow: inset 0 -2px 0 var(--track) }
+.btn { border: 0; background: var(--track); color: #fff; border-radius: 6px; padding: 10px 18px; font-weight: 700; font-size: 16px }
+.btn:hover { filter: brightness(1.06) }
 .chart { position: relative; width: 100% } .chart svg { display: block; width: 100%; height: auto; overflow: visible }
-.chart text { font: 500 12px var(--f); font-variation-settings: "wdth" 85; fill: var(--mute) } .chart .lab { font-weight: 700; fill: var(--accent) }
-.tipbox { position: absolute; pointer-events: none; background: #000; color: #fff; font: 600 13px/1.35 var(--f); padding: 5px 8px; border-radius: 3px; white-space: nowrap; transform: translate(-50%, -115%); z-index: 3 }
+.chart text { font: 500 12px var(--f); fill: var(--mute) } .chart .lab { font-weight: 700; fill: var(--track-ink) }
+.tipbox { position: absolute; pointer-events: none; background: var(--ink); color: var(--paper); font: 500 13px/1.35 var(--f); padding: 5px 8px; border-radius: 5px; white-space: nowrap; transform: translate(-50%, -115%); z-index: 3 }
 
-/* ghost race: the stadium */
-.ghost { background: var(--stadium); color: #f2efe6; padding-top: clamp(32px, 4.5vw, 54px) !important; margin-bottom: clamp(32px, 4.5vw, 54px) }
-.ghost .head h2 { background: var(--track); color: #fff }
-.ghost .head p { color: #c3d0c7 }
+/* ghost race */
 .stad-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(280px, 1fr); gap: 24px; align-items: stretch }
-.oval { position: relative; aspect-ratio: 16 / 9 } .oval canvas { position: absolute; inset: 0; width: 100%; height: 100% }
-.board { background: var(--board); border: 3px solid #262626; border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; color: #eee }
-.clock { display: flex; align-items: baseline; gap: 12px; padding-bottom: 8px; border-bottom: 2px solid #262626; margin-bottom: 4px }
-.clock output { font: 800 46px/1 var(--dot); color: var(--led); text-shadow: 0 0 10px rgba(255,178,26,.45); font-variant-numeric: tabular-nums }
-.clock .lap { margin-left: auto; font-size: 13px; color: #999; font-variation-settings: "wdth" 85 }
+.oval { position: relative; aspect-ratio: 16 / 9; background: var(--soft); border-radius: 10px } .oval canvas { position: absolute; inset: 0; width: 100%; height: 100% }
+.board { background: var(--board); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column }
+.clock { display: flex; align-items: baseline; gap: 12px; padding-bottom: 8px; border-bottom: 1.5px solid var(--ink); margin-bottom: 4px }
+.clock output { font-size: 40px; font-weight: 800; line-height: 1; font-variation-settings: "wdth" 115; font-variant-numeric: tabular-nums }
+.clock .lap { margin-left: auto; font-size: 13px; color: var(--mute) }
 #order { list-style: none; margin: 0; padding: 0; flex: 1 }
-#order li { display: grid; grid-template-columns: 18px 12px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid #1f1f1f; font-size: 15px; font-variation-settings: "wdth" 88 }
-#order .pos { color: #888; font-weight: 800 } #order .sw { width: 11px; height: 11px; border-radius: 50%; align-self: center }
-#order .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis } #order .nm small { color: #888; margin-left: 6px; font-size: 13px }
-#order .tm { font-weight: 800; font-variant-numeric: tabular-nums; color: #fff } #order li.you .nm { color: var(--you); font-weight: 800 }
-.ctl { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 14px; color: #aaa; gap: 10px }
-.ctl .btn { background: var(--you); color: #111 } .ctl .btn:hover { background: #ffe07a }
-.ctl select { background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 3px; color: #ddd; padding: 3px 6px; margin-left: 4px }
+#order li { display: grid; grid-template-columns: 18px 12px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--rule); font-size: 15px; font-variation-settings: "wdth" 92 }
+#order li:last-child { border-bottom: 0 }
+#order .pos { color: var(--mute); font-weight: 700 } #order .sw { width: 11px; height: 11px; border-radius: 50%; align-self: center; box-shadow: 0 0 0 1.5px rgba(0,0,0,.4) }
+#order .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis } #order .nm small { color: var(--mute); margin-left: 6px; font-size: 13px }
+#order .tm { font-weight: 700; font-variant-numeric: tabular-nums } #order li.you .nm { font-weight: 700 }
+.ctl { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 14px; color: var(--ink2); gap: 10px }
+.ctl select { border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); padding: 4px 6px; margin-left: 4px }
 
 /* strengths */
 .prof { display: grid; grid-template-columns: 190px minmax(0, 1fr) 56px; gap: 14px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--rule) }
-.prof .nm { font-weight: 700; font-variation-settings: "wdth" 88 } .prof .nm small { color: var(--mute); font-weight: 500; margin-left: 6px; font-size: 14px }
-.prof .bar { height: 14px; background: var(--soft); position: relative }
-.prof .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink) } .prof.best .bar i { background: var(--track) }
-.prof .v { font-weight: 900; text-align: right; font-variant-numeric: tabular-nums; font-variation-settings: "wdth" 110 }
+.prof .nm { font-weight: 600 } .prof .nm small { color: var(--mute); font-weight: 400; margin-left: 6px; font-size: 14px }
+.prof .bar { height: 12px; background: var(--soft); border-radius: 2px; position: relative; overflow: hidden }
+.prof .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink2) } .prof.best .bar i { background: var(--track) }
+.prof .v { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums }
 
 /* race plan */
 .planlayout { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); align-items: start }
-.planform { position: sticky; top: 72px }
-.planform h2 { background: var(--track); color: #fff }
+.planform { position: sticky; top: 90px; background: var(--soft); border-radius: 10px; padding: 20px }
 .hint { color: var(--ink2); font-size: 15px; margin: 0 0 14px }
-.field { display: flex; flex-direction: column; gap: 5px; border: 0; padding: 0; margin: 0 0 15px; font-size: 14px; font-weight: 700; color: var(--ink2); font-variation-settings: "wdth" 88 }
-.field legend { padding: 0; margin-bottom: 5px }
+.field { border: 0; padding: 0; margin: 0 0 15px } .field legend { padding: 0; margin-bottom: 5px }
 .field .seg { margin: 0; width: fit-content }
-.field select, .field input, .pair input, .conv input, .conv select { height: 44px; border: 2px solid var(--ink); border-radius: 3px; background: var(--paper); color: var(--ink); padding: 0 10px; width: 100%; font-size: 17px; font-weight: 500 }
-.field select:focus, .field input:focus, .pair input:focus, .conv input:focus, .conv select:focus { outline: none; box-shadow: 0 0 0 3px var(--you) }
-.field small { font-weight: 400; color: var(--mute); font-size: 13px; margin-top: 4px; display: block; font-variation-settings: "wdth" 100 }
-.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px } .pair label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 13px }
+.field small { font-weight: 400; color: var(--mute); font-size: 13px; margin-top: 4px; display: block }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px } .pair label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 13px; color: var(--ink2) }
 .unit { position: relative; display: block } .unit input { padding-right: 34px }
 .pair .unit::after { content: "°F"; position: absolute; right: 12px; top: 12px; color: var(--mute); font-size: 15px }
-.planout h3 { font-size: 18px; font-weight: 800; margin: 30px 0 10px; padding-bottom: 6px; border-bottom: 3px solid var(--ink) }
-.planout .event { font-size: 15px; font-weight: 700; color: var(--accent); margin: 0 0 8px; font-variation-settings: "wdth" 88 }
-.goalline { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px }
-.goalline .big { display: inline-block; background: var(--board); color: var(--led); border: 3px solid #262626; border-radius: 6px; padding: 8px 16px 6px; font: 800 clamp(44px, 5vw, 64px)/1 var(--dot); text-shadow: 0 0 12px rgba(255,178,26,.45); letter-spacing: .02em }
-.goalline span:last-child { color: var(--ink2); font-weight: 600; font-variation-settings: "wdth" 88 }
+.planout h3 { font-size: 19px; font-weight: 700; margin: 30px 0 10px; padding-bottom: 6px; border-bottom: 1.5px solid var(--ink) }
+.goalline { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 14px }
+.goalline .big { font-size: clamp(46px, 5vw, 62px); font-weight: 800; line-height: 1; font-variation-settings: "wdth" 118; font-variant-numeric: tabular-nums }
+.goalline span:last-child { color: var(--ink2) }
 .opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px }
-.opts button { text-align: left; border: 2px solid var(--ink); background: var(--paper); border-radius: 3px; padding: 9px 12px }
-.opts button b { display: block; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; font-variation-settings: "wdth" 105 } .opts button span { font-size: 14px; color: var(--ink2); font-variation-settings: "wdth" 88 }
-.opts button[aria-pressed=true] { background: var(--accent-soft); box-shadow: inset 0 -4px 0 var(--track) }
-.why { font-size: 15px; color: var(--ink2) } .why summary { cursor: pointer; color: var(--accent); font-weight: 700; width: fit-content }
+.opts button { text-align: left; border: 1px solid var(--rule); background: var(--paper); border-radius: 8px; padding: 10px 12px }
+.opts button b { display: block; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums } .opts button span { font-size: 14px; color: var(--ink2) }
+.opts button[aria-pressed=true] { border-color: var(--track); background: var(--track-soft) }
+.opts button:hover { border-color: var(--track) }
+.why { font-size: 15px; color: var(--ink2) } .why summary { cursor: pointer; color: var(--track-ink); font-weight: 600; width: fit-content }
 .why ul { margin: 8px 0 0; padding-left: 20px } .why li { margin-bottom: 4px }
 .phases { list-style: none; padding: 0; margin: 0 }
 .phases li { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--rule) }
-.phases b { font-weight: 800; font-variation-settings: "wdth" 88 } .phases p { margin: 0; color: var(--ink2) }
+.phases b { font-weight: 700 } .phases p { margin: 0; color: var(--ink2) }
 .morning { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px 16px; margin: 0 }
-.morning dt { font-weight: 800; font-variation-settings: "wdth" 88 } .morning dd { margin: 0; color: var(--ink2) }
+.morning dt { font-weight: 700 } .morning dd { margin: 0; color: var(--ink2) }
 .planbtns { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 26px } .planbtns .fine { margin: 0 }
 .band { display: none }
 
-/* training and goals */
+/* training */
+.wxin { max-width: 340px; margin-bottom: 16px }
+.wxout { border-top: 1.5px solid var(--ink); padding-top: 12px } .wxout b { font-size: 44px; font-weight: 800; line-height: 1.05; display: block; font-variation-settings: "wdth" 115 } .wxout span { color: var(--ink2) }
 .conv { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px }
-.conv label { display: flex; flex-direction: column; gap: 5px; font-size: 14px; font-weight: 700; color: var(--ink2); font-variation-settings: "wdth" 88 }
-.conv input { font-weight: 800; font-variant-numeric: tabular-nums }
-.goal { display: block; font-weight: 800; font-size: clamp(22px, 2.2vw, 28px); line-height: 1.2; margin: 0 0 4px; max-width: 760px; font-variation-settings: "wdth" 115 }
-.goal output { color: var(--accent) }
+.conv label { display: flex; flex-direction: column; gap: 5px; font-size: 14px; font-weight: 600; color: var(--ink2) }
+.conv input { font-weight: 700; font-variant-numeric: tabular-nums }
+.goal { display: block; font-weight: 700; font-size: clamp(21px, 2vw, 25px); line-height: 1.25; margin: 0 0 4px; font-variation-settings: "wdth" 110 }
+.goal output { color: var(--track-ink) }
 .goal input { display: block; width: 100%; margin-top: 14px; accent-color: var(--track); height: 28px }
-.goalhead { color: var(--ink2); margin: 6px 0 16px; max-width: 760px }
-#goals .scroll { max-width: 760px }
+.goalhead { color: var(--ink2); margin: 6px 0 16px }
 
-.method p { color: var(--ink2); max-width: 40em } .method b { color: var(--ink) }
+.method p { color: var(--ink2); max-width: 40em } .method b { color: var(--ink) } .method h2 { margin-bottom: 12px }
 .sources { padding-left: 18px; color: var(--ink2) } .sources li { margin-bottom: 6px }
-.foot { background: #000; color: #fff } .foot .in { display: flex; justify-content: space-between; gap: 12px; padding-top: 18px; padding-bottom: 20px; font-size: 14px; font-variation-settings: "wdth" 88; color: #bbb } .foot .in span:first-child { font-weight: 900; font-size: 17px; color: #fff; font-variation-settings: "wdth" 125 }
+.foot { border-top: 1px solid var(--rule) } .foot .in { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 18px; padding-bottom: 22px; font-size: 14px; color: var(--mute) } .foot .in span:first-child { font-weight: 800; color: var(--ink2); font-variation-settings: "wdth" 120 }
 
-@media (max-width: 920px) {
-  .hero, .sb-grid, .two, .three, .stad-grid, .planlayout { grid-template-columns: minmax(0, 1fr) }
-  .hero { padding-left: max(10vw, 52px) } .bib { transform: none }
+@media (max-width: 980px) {
+  .bar { flex-wrap: wrap; height: auto; gap: 0 16px; padding-top: 10px }
+  .name { order: 1 } .util { order: 2; margin-left: auto } .tabs { order: 3; flex-basis: 100%; margin: 6px 0 0; height: 46px }
+  .tabs button:first-child { padding-left: 0 }
+}
+@media (max-width: 900px) {
+  .top, .two, .three, .stad-grid, .planlayout { grid-template-columns: minmax(0, 1fr) }
   .planform { position: static }
-  .mast nav a[href="/"] { display: none }
-  .track::after { right: 6% }
 }
 @media (max-width: 560px) {
-  .lanes, .track::after { display: none } .hero { padding-left: max(4vw, 18px); padding-bottom: 92px }
-  .track::before { top: auto; height: 62px; opacity: .6; background: repeating-linear-gradient(180deg, var(--lane) 0 2px, transparent 2px 15.5px) }
-  .bib { padding: 20px 16px 16px }
-  .led { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) } .cell:first-child { grid-column: 1 / -1; border-right: 0; border-bottom: 2px solid #222 }
-  .ranks li { grid-template-columns: 72px minmax(0, 1fr) } .ranks b { font-size: 19px }
+  .ranks { grid-template-columns: minmax(0, 1fr) } .rank b { font-size: 28px }
   .prof { grid-template-columns: 110px minmax(0, 1fr) 44px } .prof .nm small { display: block; margin: 0 }
   .phases li, .morning { grid-template-columns: minmax(0, 1fr); gap: 2px } .morning dd { margin-bottom: 10px }
   .opts, .who, .conv { grid-template-columns: minmax(0, 1fr) }
-  .tabs button { font-size: 16px; margin-right: 4px }
-  .tabs .in { -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); mask-image: linear-gradient(90deg, #000 82%, transparent) }
+  .tabs { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent) }
   .oval { aspect-ratio: 3 / 2 }
 }
 @media print {
-  .mast, .track, .scoreboard, .tabs, .foot, .planform, .planbtns, .why, #p-stand, #p-train, #p-data { display: none !important }
-  #p-plan { display: block !important } .planlayout { display: block } .block { padding: 0 }
-  body { font-size: 12pt } .goalline .big { background: none; color: #000; text-shadow: none; border: 2px solid #000 }
+  .mast, .ctx, .foot, .planform, .planbtns, .why, .page:not(#p-plan) { display: none !important }
+  #p-plan { display: block !important } .planlayout { display: block } .sec { padding: 0; border: 0 }
+  body { font-size: 12pt }
   .band { display: block; margin-top: 18px; border: 1px dashed #888; padding: 8px 10px; width: fit-content; font-size: 10pt }
   .band table { border-collapse: collapse } .band td { padding: 1px 10px 1px 0 }
 }

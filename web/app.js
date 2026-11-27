@@ -1,4 +1,4 @@
-import { DISTANCES, byId, WORLD_RECORDS, vdot, predict, riegel, trainingPaces, fasterThan, timeAt, fmt, parseTime } from './model.js';
+import { DISTANCES, byId, WORLD_RECORDS, vdot, predict, riegel, trainingPaces, fasterThan, timeAt, heatSlowdown, fmt, parseTime } from './model.js';
 import { planGoal, checkpoints, phases, raceDay } from './plan.js';
 
 const $ = s => document.querySelector(s);
@@ -22,8 +22,8 @@ const PRESETS = {
 };
 
 let D = null;  // race data
-const S = { prs: [], sex: 'men', age: '', unit: 'mi', planUnit: 'mi', planDist: null, planTime: '', course: 'flat', bold: 'real', pacing: 'negative', field: 'all', tab: 'stand' };
-const TABS = ['stand', 'plan', 'train', 'data'];
+const S = { prs: [], sex: 'men', age: '', unit: 'mi', planUnit: 'mi', planDist: null, planTime: '', course: 'flat', bold: 'real', pacing: 'negative', field: 'all', tab: 'me' };
+const TABS = ['me', 'rank', 'ghost', 'plan', 'train', 'data'];
 
 // ------------------------------------------------------------------ state <-> URL
 function fromHash() {
@@ -39,7 +39,7 @@ function fromHash() {
 function toHash() {
   const p = S.prs.filter(([, t]) => parseTime(t) > 0).map(([d, t]) => `${d}-${t}`).join(',');
   const q = new URLSearchParams({ p, s: S.sex }); if (S.age) q.set('a', S.age);
-  if (S.tab !== 'stand') q.set('t', S.tab); if (S.tab === 'plan' && S.planDist) q.set('r', S.planDist);
+  if (S.tab !== 'me') q.set('t', S.tab); if (S.tab === 'plan' && S.planDist) q.set('r', S.planDist);
   history.replaceState(null, '', '#' + q.toString());
 }
 function preset(name) { const p = PRESETS[name]; S.prs = p.prs.map(x => [...x]); S.sex = p.sex; S.age = p.age; S.planTime = ''; S.planDist = null; $('#plan-time').value = ''; renderBib(); update(); }
@@ -106,14 +106,11 @@ function ageGroup(age) {
 function renderVerdict(A) {
   const b = A.best, sexWord = S.sex === 'men' ? 'men’s' : S.sex === 'women' ? 'women’s' : '';
   $('#vdot').textContent = A.V.toFixed(1);
-  $('#sb-race').textContent = A.prs.length > 1 ? `Your best race: ${b.d.label}` : b.d.label;
-  $('#sb-race-t').textContent = fmt(b.s);
-  $('#sb-mar').textContent = fmt(A.marathon);
-  $('#sb-pct').textContent = pctTxt(A.pct);
-  $('#sb-of').textContent = `#${num(A.place)} of ${num(A.N)} ${sexWord} marathon finishes`;
+  $('#v-event').textContent = A.prs.length > 1 ? `Your best race: ${b.d.label} in ${fmt(b.s)}` : `${b.d.label} in ${fmt(b.s)}`;
+  $('#ctx-t').innerHTML = `Based on your <b>${b.d.label}, ${fmt(b.s)}</b> (fitness score ${A.V.toFixed(1)}).`;
   $('#v-head').innerHTML = b.d.id === 'marathon'
-    ? `That is faster than <b>${pctTxt(A.pct)}</b> of the ${num(A.N)} ${sexWord} marathon finishes in the data.`
-    : `That is worth about a <b>${fmt(A.marathon)}</b> marathon, faster than <b>${pctTxt(A.pct)}</b> of the ${num(A.N)} ${sexWord} marathon finishes in the data.`;
+    ? `Faster than <em>${pctTxt(A.pct)}</em> of ${num(A.N)} ${sexWord} marathon finishes.`
+    : `Worth a <em>${fmt(A.marathon)}</em> marathon: faster than <em>${pctTxt(A.pct)}</em> of ${num(A.N)} ${sexWord} finishes.`;
   const rows = [];
   rows.push([`#${num(A.place)}`, `of ${num(A.N)} ${sexWord} marathon finishes`, b.d.id === 'marathon' ? 'Your time' : 'Your marathon equivalent']);
   // toughest field
@@ -140,7 +137,7 @@ function renderVerdict(A) {
   }
   const wr = wrFor(b.d);
   rows.push([`${((b.s / wr.t - 1) * 100).toFixed(0)}%`, `slower than the world record (${fmt(wr.t, wr.t < 1000 ? 2 : 0)})`, wr.who]);
-  $('#ranks').innerHTML = rows.slice(1).map(([v, t, s]) => `<li><b>${v}</b><span>${t}<small>${esc(s)}</small></span></li>`).join('');
+  $('#ranks').innerHTML = rows.map(([v, t, s]) => `<div class="rank"><b>${v}</b><span>${t}</span><small>${esc(s)}</small></div>`).join('');
   $('#v-note').textContent = b.d.id === 'marathon' ? '' : 'The marathon comparison assumes you trained for a marathon. The college comparison uses your actual race.';
 }
 
@@ -232,7 +229,7 @@ function histogram(q, you, opts) {
   const bars = []; let mx = 0;
   for (let i = 0; i < n; i++) { const a = lo + i * bin, b = a + bin, v = cdf(b) - cdf(a); bars.push([a, b, v]); mx = Math.max(mx, v); }
   const P = { l: 6, r: 6, t: 26, b: 26 }, X = t => P.l + (t - lo) / (hi - lo) * (W - P.l - P.r), Y = v => H - P.b - v / mx * (H - P.t - P.b);
-  let s = bars.map(([a, b, v]) => `<rect x="${X(a) + .5}" y="${Y(v)}" width="${Math.max(1, X(b) - X(a) - 1)}" height="${H - P.b - Y(v)}" fill="${a >= you ? 'var(--ink)' : 'var(--rule)'}" data-tip="${fmt(a)}&ndash;${fmt(b)}: ${(v * 100).toFixed(1)}% of finishers"/>`).join('');
+  let s = bars.map(([a, b, v]) => `<rect x="${X(a) + .5}" y="${Y(v)}" width="${Math.max(1, X(b) - X(a) - 1)}" height="${H - P.b - Y(v)}" fill="${a >= you ? 'var(--ink2)' : 'var(--rule)'}" data-tip="${fmt(a)}&ndash;${fmt(b)}: ${(v * 100).toFixed(1)}% of finishers"/>`).join('');
   const ticks = opts.ticks.map(t => `<text x="${X(t)}" y="${H - 8}" text-anchor="middle">${fmt(t)}</text>`).join('');
   const yx = Math.max(P.l, Math.min(W - P.r, X(you)));
   s += `<line x1="${yx}" x2="${yx}" y1="${P.t - 8}" y2="${H - P.b}" stroke="var(--accent)" stroke-width="2.5"/><text class="lab" x="${yx + (yx > W * .7 ? -6 : 6)}" y="${P.t - 12}" text-anchor="${yx > W * .7 ? 'end' : 'start'}" >${esc(label)}</text>`;
@@ -271,12 +268,12 @@ function renderProfile(A) {
 function renderFields(A) {
   $('#fields-sub').textContent = `Your ${A.best.d.id === 'marathon' ? 'time' : 'marathon equivalent'} of ${fmt(A.marathon)}, placed in every finish in each race across the years in the data.`;
   const rows = D.races.map(r => { const p = fasterThan(r.q, A.marathon); return { r, p, place: Math.max(1, Math.round((1 - p / 100) * r.n)) }; }).sort((a, b) => a.p - b.p);
-  $('#fieldtable tbody').innerHTML = rows.map(x => `<tr><td>${esc(x.r.name)}<br><span class="pl">${x.r.years[0]}–${x.r.years[x.r.years.length - 1]}</span></td><td class="r t">#${num(x.place)} <span class="pl">of ${num(x.r.n)}</span></td><td class="r">${pctTxt(x.p)}</td></tr>`).join('');
+  $('#fieldtable tbody').innerHTML = rows.map(x => `<tr><td>${esc(x.r.name)}</td><td class="pl">${x.r.years[0]}–${x.r.years[x.r.years.length - 1]}</td><td class="r t">#${num(x.place)} <span class="pl">of ${num(x.r.n)}</span></td><td class="r">${pctTxt(x.p)}</td></tr>`).join('');
   const seg = $('#distseg');
   if (!seg.children.length) { seg.innerHTML = ['all', 'men', 'women'].map(k => `<button role="radio" data-f="${k}" aria-checked="${k === S.field}">${k === 'all' ? 'Everyone' : k[0].toUpperCase() + k.slice(1)}</button>`).join(''); seg.onclick = e => { const b = e.target.closest('button'); if (!b) return; S.field = b.dataset.f; update(); }; }
   seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', b.dataset.f === S.field));
   const q = D[S.field], n = S.field === 'men' ? D.n_men : S.field === 'women' ? D.n_women : D.n;
-  $('#dist-sub').textContent = `${num(n)} finishes, grouped by 5 minutes. The dark bars are the runners you would beat.`;
+  $('#dist-sub').textContent = `${num(n)} finishes, grouped by 5 minutes. Darker bars are the finishers you beat.`;
   $('#dist').innerHTML = histogram(q, A.marathon, { lo: 7200, hi: 25200, bin: 300, ticks: [7200, 10800, 14400, 18000, 21600, 25200], label: `You ${fmt(A.marathon)}` }); tip($('#dist'));
 }
 
@@ -316,6 +313,11 @@ function renderPaces(A) {
     `<tr><td><b>400 m repeats</b><br><span class="pl">Repetition pace</span></td><td class="r t">${fmt(trainingPaces(A.V)[4].lo * .4, 1)}</td></tr>`;
 }
 
+function renderWeather(A) {
+  const f = heatSlowdown(+$('#wx-temp').value || 0, +$('#wx-dew').value || 0), b = A.best;
+  $('#wxout').innerHTML = f <= 0 ? `<b>No slowdown</b><span>Conditions are good for fast times.</span>`
+    : `<b>+${(f * 100).toFixed(1)}%</b><span>Your ${b.d.label} becomes about <strong>${fmt(b.s * (1 + f))}</strong> (+${fmt(b.s * f)}); a marathon would lose about ${fmt(A.marathon * f)}.</span>`;
+}
 const lower = l => (/^(Half marathon|Marathon|Mile)$/.test(l) ? l.toLowerCase() : l);
 function cpLabel(r, step, m, unit) {
   if (r.half) return 'Halfway';
@@ -363,8 +365,9 @@ function showTab(id, focus = false) {
   S.tab = id;
   TABS.forEach(t => { const b = $(`#tab-${t}`), on = t === id; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; $(`#p-${t}`).hidden = !on; });
   if (focus) $(`#tab-${id}`).focus();
-  const strip = $('.tabs .in'), btn = $(`#tab-${id}`); strip.scrollLeft = Math.max(0, btn.offsetLeft - 40);
-  if (id === 'stand') drawTrack();
+  const strip = $('.tabs'), btn = $(`#tab-${id}`); if (strip.scrollWidth > strip.clientWidth) strip.scrollLeft = Math.max(0, btn.offsetLeft - strip.offsetLeft - 40);
+  if (id === 'ghost') drawTrack();
+  $('#ctx').hidden = id === 'me' || !analyse();
   toHash();
 }
 
@@ -415,8 +418,8 @@ let lastKey = '';
 function update() {
   const A = analyse();
   toHash();
-  if (!A) { $('#v-head').textContent = 'Enter a race time to start.'; ['#sb-race-t', '#sb-mar', '#sb-pct'].forEach(k => $(k).textContent = '–'); $('#sb-of').textContent = 'Enter a race time to start'; return; }
-  renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderRacePlan(A); renderData(A);
+  if (!A) { $('#v-head').textContent = 'Enter a race time to start.'; $('#ranks').innerHTML = ''; $('#v-event').textContent = ''; return; }
+  renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderRacePlan(A); renderData(A);
   const key = `${A.best.d.id}:${A.best.s}:${S.sex}`;
   if (key !== lastKey) { lastKey = key; setupGhost(A); }
 }
@@ -434,8 +437,10 @@ function wire() {
   $('#po-opts').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.bold = b.dataset.bold; S.planTime = ''; $('#plan-time').value = ''; update(); };
   $('#plan-dist').onchange = e => { S.planDist = e.target.value; S.planTime = ''; $('#plan-time').value = ''; update(); };
   $('#plan-time').oninput = e => { S.planTime = e.target.value; update(); };
-  TABS.forEach((t, i) => { const b = $(`#tab-${t}`); b.onclick = () => { showTab(t); const top = $('.tabs').offsetTop; if (scrollY > top) scrollTo({ top }); }; b.onkeydown = e => { const k = { ArrowRight: 1, ArrowLeft: -1 }[e.key]; if (k) { e.preventDefault(); showTab(TABS[(i + k + TABS.length) % TABS.length], true); } }; });
+  TABS.forEach((t, i) => { const b = $(`#tab-${t}`); b.onclick = () => { showTab(t); scrollTo({ top: 0 }); }; b.onkeydown = e => { const k = { ArrowRight: 1, ArrowLeft: -1 }[e.key]; if (k) { e.preventDefault(); showTab(TABS[(i + k + TABS.length) % TABS.length], true); } }; });
   $('#tempf').oninput = $('#dewf').oninput = () => update();
+  $('#wx-temp').oninput = $('#wx-dew').oninput = () => update();
+  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { showTab(b.dataset.go); scrollTo({ top: 0 }); });
   $('#goal').oninput = () => update();
   $('#conv-v').oninput = $('#conv-u').onchange = () => renderConverter();
   $('#print').onclick = () => window.print();

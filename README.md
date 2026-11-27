@@ -9,6 +9,7 @@ Put in one or more race PRs, from 800 m to the marathon, and Splits shows:
 - **High school benchmarks**: the 2025 CIF State Cross Country champions' times
 - **A ghost race**: you against the world record and the top 1%, top 10% and median marathoners, animated on a 400 m track
 - **Your PR profile**: which PR is really your best, and whether you lean toward speed or endurance
+- **Six pages** (Your times, Rankings, Ghost race, Race plan, Training, The data) under tabs at the top
 - **Race plan builder**: pick a race, course, forecast and how bold to be. Splits sets a goal from your races (leaning on the one closest in distance), then writes the plan: how to run each phase, checkpoint splits with an on-track window, warmup, gels and drinks. Prints on one page with a pace band
 - **Equivalent times** at every distance (VDOT and Riegel), **training paces**, a **goal finder** and a **pace converter**
 
