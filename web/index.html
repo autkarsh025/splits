@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oval: how fast is your time, really?</title>
-<meta name="description" content="Rank any race time against 3.4 million real marathon finishes and college runners' PRs, race the world record, build a race plan, and get your training paces.">
+<meta name="description" content="Rank any race time against 3.4 million real marathon finishes and college runners' PRs, race the world record, build a race plan and a weekly training plan.">
 <meta property="og:title" content="Oval">
-<meta property="og:description" content="How fast is your time, really? Real race data, a ghost race against the world record, race plans and training paces.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='6' width='30' height='20' rx='10' fill='%23d9533b'/%3E%3Crect x='3' y='8' width='26' height='16' rx='8' fill='none' stroke='%23fff' stroke-width='1'/%3E%3Crect x='5.5' y='10.5' width='21' height='11' rx='5.5' fill='%231d5238'/%3E%3Cpath d='M21 24v2' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E">
+<meta property="og:description" content="How fast is your time, really? Real race data, a ghost race against the world record, race plans and weekly training.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='6' width='30' height='20' rx='10' fill='%23ec5a3c'/%3E%3Crect x='3' y='8' width='26' height='16' rx='8' fill='none' stroke='%23fff' stroke-width='1'/%3E%3Crect x='5.5' y='10.5' width='21' height='11' rx='5.5' fill='%2310141f'/%3E%3Cpath d='M21 24v2' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
 <script>try{const t=localStorage.getItem('splits-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
@@ -38,13 +38,13 @@
 <main id="pages">
 <!-- ============================================================ your times -->
 <div class="page" id="p-me" role="tabpanel" aria-labelledby="tab-me">
-  <section class="sec">
+  <section class="sec first">
     <div class="in top">
       <form class="entry" id="entry" autocomplete="off" aria-labelledby="title">
         <h1 id="title">How fast is your time, really?</h1>
-        <p class="lede">Put in your recent races. Oval ranks them against <b data-n="all">3.4 million</b> real marathon finishes and thousands of college runners.</p>
+        <p class="lede">Put in a recent race. Oval ranks it against <b data-n="all">3.4 million</b> real marathon finishes and thousands of college runners, then builds your race plan and training week.</p>
         <div class="bib">
-          <div class="bibhead"><span>Your races</span><span class="vd">Fitness score (VDOT) <output id="vdot">&ndash;</output></span></div>
+          <div class="bibhead"><span>Your races</span><span class="vd" id="vd" hidden>Fitness score (VDOT) <output id="vdot">&ndash;</output></span></div>
           <div class="prhead" aria-hidden="true"><span>Race</span><span>Time</span></div>
           <div id="prs"></div>
           <button type="button" class="add" id="addpr">+ Add another race</button>
@@ -58,61 +58,64 @@
         <p class="examples"><span>Or try:</span><button type="button" data-preset="me">Utkarsh&rsquo;s PRs</button><button type="button" data-preset="sub3">A 2:59 marathon</button><button type="button" data-preset="first5k">A first 5K</button></p>
       </form>
 
-      <section class="verdict" aria-live="polite" aria-labelledby="v-head">
+      <section class="verdict" id="verdict" aria-live="polite" aria-labelledby="v-head" hidden>
         <p class="kicker" id="v-event"></p>
-        <h2 id="v-head">Enter a race time to start.</h2>
+        <h2 id="v-head"></h2>
         <div class="ranks" id="ranks"></div>
         <p class="fine" id="v-note"></p>
-        <button type="button" id="share" class="linkbtn">Copy a link to these results</button>
+        <p class="next">Next: <button type="button" class="linkbtn" data-go="rank">see every ranking</button>, <button type="button" class="linkbtn" data-go="plan">plan your next race</button>, or <button type="button" class="linkbtn" data-go="train">get your training week</button>. <button type="button" id="share" class="linkbtn quiet">Copy link</button></p>
       </section>
     </div>
   </section>
 
-  <section class="sec" id="profile-sec" hidden>
+  <section class="sec" id="me-more" hidden>
     <div class="in">
-      <h2>Your strengths</h2>
-      <p class="sub" id="profile-sub"></p>
-      <div id="profile"></div>
-    </div>
-  </section>
-
-  <section class="sec">
-    <div class="in">
-      <h2>What your time is worth at every distance</h2>
-      <p class="sub">Equivalent times from your best race by VDOT (Daniels and Gilbert), with Riegel&rsquo;s formula as a second opinion. Your own races are highlighted.</p>
-      <div class="scroll"><table class="results" id="equiv"><thead><tr><th>Distance</th><th class="r">VDOT</th><th class="r">Riegel</th><th class="r">Pace per km</th><th class="r">Pace per mile</th><th class="r">Beats college runners</th></tr></thead><tbody></tbody></table></div>
+      <div class="subtabs" role="tablist" aria-label="More about your times">
+        <button role="tab" aria-selected="true" data-sub="me-equiv">Equivalent times</button>
+        <button role="tab" aria-selected="false" data-sub="me-prof" id="sub-prof">Your strengths</button>
+      </div>
+      <div class="subpanel" id="me-equiv" role="tabpanel">
+        <p class="sub">What your best race is worth at every distance: VDOT (Daniels and Gilbert), with Riegel&rsquo;s formula as a second opinion. Your own races are highlighted.</p>
+        <div class="scroll"><table class="results" id="equiv"><thead><tr><th>Distance</th><th class="r">VDOT</th><th class="r">Riegel</th><th class="r">Pace per km</th><th class="r">Pace per mile</th><th class="r">Beats college runners</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="subpanel" id="me-prof" role="tabpanel" hidden>
+        <p class="sub" id="profile-sub"></p>
+        <div id="profile"></div>
+      </div>
     </div>
   </section>
 </div>
 
 <!-- ============================================================ rankings -->
 <div class="page" id="p-rank" role="tabpanel" aria-labelledby="tab-rank" hidden>
-  <section class="sec">
-    <div class="in two">
-      <div>
-        <h2>Where you would finish</h2>
-        <p class="sub" id="fields-sub"></p>
-        <table class="results" id="fieldtable"><thead><tr><th>Race</th><th>Years</th><th class="r">Your place</th><th class="r">Faster than</th></tr></thead><tbody></tbody></table>
+  <section class="sec first">
+    <div class="in">
+      <h2>Rankings</h2>
+      <div class="subtabs" role="tablist" aria-label="Rankings">
+        <button role="tab" aria-selected="true" data-sub="rk-mar">Marathons</button>
+        <button role="tab" aria-selected="false" data-sub="rk-col">College runners</button>
+        <button role="tab" aria-selected="false" data-sub="rk-hs">High school</button>
       </div>
-      <div>
-        <h2>The whole field</h2>
-        <p class="sub" id="dist-sub"></p>
-        <div class="seg" id="distseg" role="radiogroup" aria-label="Field"></div>
-        <div class="chart" id="dist"></div>
+      <div class="subpanel two" id="rk-mar" role="tabpanel">
+        <div>
+          <h3>Where you would finish</h3>
+          <p class="sub" id="fields-sub"></p>
+          <table class="results" id="fieldtable"><thead><tr><th>Race</th><th>Years</th><th class="r">Your place</th><th class="r">Faster than</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div>
+          <h3>The whole field</h3>
+          <p class="sub" id="dist-sub"></p>
+          <div class="seg" id="distseg" role="radiogroup" aria-label="Field"></div>
+          <div class="chart" id="dist"></div>
+        </div>
       </div>
-    </div>
-  </section>
-  <section class="sec">
-    <div class="in two">
-      <div>
-        <h2>Against college runners</h2>
+      <div class="subpanel" id="rk-col" role="tabpanel" hidden>
         <p class="sub" id="college-sub"></p>
-        <div class="chart" id="college"></div>
+        <div class="chart narrow" id="college"></div>
       </div>
-      <div>
-        <h2>High school benchmarks</h2>
+      <div class="subpanel" id="rk-hs" role="tabpanel" hidden>
         <p class="sub">California&rsquo;s 2025 CIF State Cross Country Championships, Woodward Park, Fresno (5K). Official winning times from the CIF.</p>
-        <table class="results" id="hs"><tbody></tbody></table>
+        <table class="results narrow" id="hs"><tbody></tbody></table>
       </div>
     </div>
   </section>
@@ -120,7 +123,7 @@
 
 <!-- ============================================================ ghost race -->
 <div class="page" id="p-ghost" role="tabpanel" aria-labelledby="tab-ghost" hidden>
-  <section class="sec" id="ghost">
+  <section class="sec first" id="ghost">
     <div class="in">
       <h2>Ghost race</h2>
       <p class="sub">Your best race, run at even pace on a 400 m track against the world record and the marathon field. Pick real time to feel the actual pace, or speed it up.</p>
@@ -138,10 +141,10 @@
 
 <!-- ============================================================ race plan -->
 <div class="page" id="p-plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
-  <section class="sec">
+  <section class="sec first">
     <div class="in planlayout">
       <form class="planform" id="planform" autocomplete="off" aria-label="Race plan settings">
-        <h2>Build a race plan</h2>
+        <h2>Race plan</h2>
         <p class="hint">Tell Oval about the race. The plan updates as you change anything.</p>
         <label class="field">Which race?<select id="plan-dist"></select></label>
         <fieldset class="field"><legend>Course</legend><div class="seg" data-key="course"><button type="button" data-v="flat">Flat</button><button type="button" data-v="rolling">Rolling</button><button type="button" data-v="hilly">Hilly</button></div></fieldset>
@@ -163,13 +166,17 @@
         <div class="goalline"><span class="big" id="po-goal"></span><span id="po-pace"></span></div>
         <div class="opts" id="po-opts" role="group" aria-label="Goal options"></div>
         <details class="why"><summary>How this goal was worked out</summary><ul id="po-why"></ul></details>
-        <h3>How to run it</h3>
-        <ol class="phases" id="po-phases"></ol>
-        <h3>Checkpoints</h3>
-        <p class="hint" id="po-cp-hint"></p>
-        <table class="results" id="po-cp"><thead><tr><th>Where</th><th class="r">Target</th><th class="r">On track if between</th></tr></thead><tbody></tbody></table>
-        <h3>Race morning</h3>
-        <dl class="morning" id="po-morning"></dl>
+        <div class="subtabs" role="tablist" aria-label="Race plan details">
+          <button role="tab" aria-selected="true" data-sub="po-run">How to run it</button>
+          <button role="tab" aria-selected="false" data-sub="po-cps">Checkpoints</button>
+          <button role="tab" aria-selected="false" data-sub="po-day">Race morning</button>
+        </div>
+        <div class="subpanel" id="po-run" role="tabpanel"><ol class="phases" id="po-phases"></ol></div>
+        <div class="subpanel" id="po-cps" role="tabpanel" hidden>
+          <p class="hint" id="po-cp-hint"></p>
+          <table class="results" id="po-cp"><thead><tr><th>Where</th><th class="r">Target</th><th class="r">On track if between</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="subpanel" id="po-day" role="tabpanel" hidden><dl class="morning" id="po-morning"></dl></div>
         <div class="planbtns"><button type="button" class="btn" id="print">Print this plan</button><span class="fine">Prints on one page, with a pace band you can cut out.</span></div>
       </article>
     </div>
@@ -178,44 +185,77 @@
 
 <!-- ============================================================ training -->
 <div class="page" id="p-train" role="tabpanel" aria-labelledby="tab-train" hidden>
-  <section class="sec">
-    <div class="in two">
-      <div>
-        <h2>Training paces</h2>
-        <p class="sub" id="paces-sub"></p>
-        <div class="seg" id="unitseg" role="radiogroup" aria-label="Units"><button type="button" role="radio" aria-checked="false" data-unit="km">Per km</button><button type="button" role="radio" aria-checked="true" data-unit="mi">Per mile</button></div>
-        <table class="results" id="pacetable"><tbody></tbody></table>
+  <section class="sec first">
+    <div class="in">
+      <h2>Training</h2>
+      <div class="subtabs" role="tablist" aria-label="Training">
+        <button role="tab" aria-selected="true" data-sub="tr-week">This week</button>
+        <button role="tab" aria-selected="false" data-sub="tr-stretch">Stretches and strength</button>
+        <button role="tab" aria-selected="false" data-sub="tr-paces">Paces</button>
+        <button role="tab" aria-selected="false" data-sub="tr-goal">Goal finder</button>
+        <button role="tab" aria-selected="false" data-sub="tr-conv">Pace converter</button>
+        <button role="tab" aria-selected="false" data-sub="tr-wx">Weather</button>
       </div>
-      <div>
-        <h2>Weather</h2>
-        <p class="sub">Heat and humidity slow everyone down. Enter race-day conditions to see what to expect.</p>
-        <div class="pair wxin">
-          <label>Temperature<span class="unit"><input id="wx-temp" type="number" value="62" inputmode="numeric"></span></label>
-          <label>Dew point<span class="unit"><input id="wx-dew" type="number" value="50" inputmode="numeric"></span></label>
+
+      <div class="subpanel" id="tr-week" role="tabpanel">
+        <form class="wkform" id="wkform" autocomplete="off" aria-label="Weekly plan settings">
+          <label class="field">Weekly volume<span class="vol"><input id="wk-vol" type="number" min="5" max="150" value="25" inputmode="numeric"><span id="wk-unit">mi</span></span></label>
+          <label class="field">Days running<select id="wk-days"><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option></select></label>
+          <fieldset class="field"><legend>Experience</legend><div class="seg" data-wk="level"><button type="button" data-v="new">New</button><button type="button" data-v="regular">Regular</button><button type="button" data-v="experienced">Experienced</button></div></fieldset>
+          <label class="field">Training for<select id="wk-focus"><option value="mile">Mile</option><option value="5k">5K</option><option value="10k">10K</option><option value="half">Half marathon</option><option value="marathon">Marathon</option></select></label>
+          <fieldset class="field"><legend>Units</legend><div class="seg" data-wk="unit"><button type="button" data-v="mi">Miles</button><button type="button" data-v="km">Km</button></div></fieldset>
+        </form>
+        <div class="wkhead"><p id="wk-sum"></p><div class="wknav"><button type="button" class="ghostbtn" id="wk-prev" aria-label="Previous week">&lsaquo;</button><span id="wk-range"></span><button type="button" class="ghostbtn" id="wk-next" aria-label="Next week">&rsaquo;</button></div></div>
+        <p class="note" id="wk-note" hidden></p>
+        <ol class="week" id="week"></ol>
+        <div class="wkfoot"><span id="wk-done"></span><button type="button" class="linkbtn quiet" id="wk-clear">Clear this week&rsquo;s log</button></div>
+        <p class="fine">Built on published coaching rules: about 80% easy running with one or two hard sessions (Seiler), long runs at most 25 to 30% of the week, and per-session limits for threshold, interval and fast work (Daniels). Your log is saved in this browser only. Next week, add little and keep your long run within about 10% of your longest run in the past month.</p>
+      </div>
+
+      <div class="subpanel" id="tr-stretch" role="tabpanel" hidden>
+        <p class="sub">A short routine around every run, and strength work twice a week. Dynamic moves suit a warm-up best. Heavy lifting and hops are what research links to better running economy.</p>
+        <div class="routines" id="routines"></div>
+      </div>
+
+      <div class="subpanel two" id="tr-paces" role="tabpanel" hidden>
+        <div>
+          <p class="sub" id="paces-sub"></p>
+          <div class="seg" id="unitseg" role="radiogroup" aria-label="Units"><button type="button" role="radio" aria-checked="false" data-unit="km">Per km</button><button type="button" role="radio" aria-checked="true" data-unit="mi">Per mile</button></div>
+          <table class="results" id="pacetable"><tbody></tbody></table>
         </div>
-        <div class="wxout" id="wxout"></div>
-        <p class="fine">A coaches&rsquo; rule of thumb on temperature plus dew point. It is an estimate, not a physiological model.</p>
       </div>
-    </div>
-  </section>
-  <section class="sec">
-    <div class="in two">
-      <div id="goals">
-        <h2>Goal finder</h2>
-        <p class="sub">Pick how much of the marathon field you want to beat. Oval works out the times that take at every distance, and how far you are from each.</p>
-        <label class="goal">Faster than <output id="goal-out">90%</output> of <span id="goal-field">marathoners</span>
-          <input id="goal" type="range" min="50" max="99.9" step="0.1" value="90"></label>
-        <p class="goalhead" id="goal-head"></p>
-        <table class="results" id="goaltable"><thead><tr><th>Distance</th><th class="r">Goal</th><th class="r">You now</th><th class="r">To cut</th></tr></thead><tbody></tbody></table>
-      </div>
-      <div>
-        <h2>Pace converter</h2>
-        <p class="sub">Type any pace or speed. Everything else, including finish times, follows.</p>
-        <div class="conv">
-          <label>Pace or speed <input id="conv-v" value="7:00" inputmode="decimal"></label>
-          <label>Unit <select id="conv-u"><option value="mi">min per mile</option><option value="km">min per km</option><option value="kmh">km/h</option><option value="mph">mph</option></select></label>
+
+      <div class="subpanel" id="tr-goal" role="tabpanel" hidden>
+        <div id="goals" class="narrow">
+          <p class="sub">Pick how much of the marathon field you want to beat. Oval works out the times that take at every distance, and how far you are from each.</p>
+          <label class="goal">Faster than <output id="goal-out">90%</output> of <span id="goal-field">marathoners</span>
+            <input id="goal" type="range" min="50" max="99.9" step="0.1" value="90"></label>
+          <p class="goalhead" id="goal-head"></p>
+          <table class="results" id="goaltable"><thead><tr><th>Distance</th><th class="r">Goal</th><th class="r">You now</th><th class="r">To cut</th></tr></thead><tbody></tbody></table>
         </div>
-        <table class="results" id="convtable"><tbody></tbody></table>
+      </div>
+
+      <div class="subpanel" id="tr-conv" role="tabpanel" hidden>
+        <div class="narrow">
+          <p class="sub">Type any pace or speed. Everything else, including finish times, follows.</p>
+          <div class="conv">
+            <label>Pace or speed <input id="conv-v" value="7:00" inputmode="decimal"></label>
+            <label>Unit <select id="conv-u"><option value="mi">min per mile</option><option value="km">min per km</option><option value="kmh">km/h</option><option value="mph">mph</option></select></label>
+          </div>
+          <table class="results" id="convtable"><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div class="subpanel" id="tr-wx" role="tabpanel" hidden>
+        <div class="narrow">
+          <p class="sub">Heat and humidity slow everyone down. Enter race-day conditions to see what to expect.</p>
+          <div class="pair wxin">
+            <label>Temperature<span class="unit"><input id="wx-temp" type="number" value="62" inputmode="numeric"></span></label>
+            <label>Dew point<span class="unit"><input id="wx-dew" type="number" value="50" inputmode="numeric"></span></label>
+          </div>
+          <div class="wxout" id="wxout"></div>
+          <p class="fine">A coaches&rsquo; rule of thumb on temperature plus dew point. It is an estimate, not a physiological model.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -223,28 +263,30 @@
 
 <!-- ============================================================ data -->
 <div class="page" id="p-data" role="tabpanel" aria-labelledby="tab-data" hidden>
-  <section class="sec">
+  <section class="sec first">
     <div class="in">
-      <h2>What <span data-n="all">3.4 million</span> finishes say</h2>
-      <p class="sub">Every finish in ten US marathons from 2000 to 2019, plus London from 2018 to 2023.</p>
-      <div class="three">
-        <figure><figcaption id="cap-races"></figcaption><div class="chart" id="racemed"></div></figure>
-        <figure><figcaption id="cap-age"></figcaption><div class="chart" id="agecurve"></div></figure>
-        <figure><figcaption id="cap-years"></figcaption><div class="chart" id="years"></div></figure>
+      <h2>The data</h2>
+      <div class="subtabs" role="tablist" aria-label="The data">
+        <button role="tab" aria-selected="true" data-sub="dt-charts">What the finishes say</button>
+        <button role="tab" aria-selected="false" data-sub="dt-how">How it works</button>
+        <button role="tab" aria-selected="false" data-sub="dt-src">Sources</button>
       </div>
-    </div>
-  </section>
-  <section class="sec method">
-    <div class="in two">
-      <div>
-        <h2>How it works</h2>
+      <div class="subpanel" id="dt-charts" role="tabpanel">
+        <p class="sub">Every finish in ten US marathons from 2000 to 2019, plus London from 2018 to 2023: <span data-n="all">3.4 million</span> in all.</p>
+        <div class="three">
+          <figure><figcaption id="cap-races"></figcaption><div class="chart" id="racemed"></div></figure>
+          <figure><figcaption id="cap-age"></figcaption><div class="chart" id="agecurve"></div></figure>
+          <figure><figcaption id="cap-years"></figcaption><div class="chart" id="years"></div></figure>
+        </div>
+      </div>
+      <div class="subpanel method" id="dt-how" role="tabpanel" hidden>
         <p><b>Equivalent times.</b> Every time is converted to VDOT with the Daniels and Gilbert equations: the oxygen cost of running at your pace divided by the share of VO2max you can hold for that long. Inverting the same equations gives equivalent times at other distances and the training paces.</p>
         <p><b>Rankings.</b> Percentiles are read from the full distribution of finish times, not from averages. A shorter race is ranked against the marathon field through its marathon equivalent. College rankings use each athlete&rsquo;s best time in that event.</p>
         <p><b>Race plans.</b> The goal leans on your race closest in distance, then adds time for racing far beyond your longest race, for hills (about 1% rolling, 3% hilly) and for heat. Checkpoints follow a slightly faster second half from 10K up.</p>
+        <p><b>Training weeks.</b> About 80% easy with one or two hard sessions, following the intensity distribution studied by Seiler and others. Long runs and session sizes follow Daniels&rsquo; limits. A strict 10% weekly increase did not reduce injuries in a randomized trial of novice runners (Buist 2008), so Oval warns about big jumps in your long run instead.</p>
         <p><b>Limits.</b> Marathon fields are self-selected, so beating 60% of them is better than beating 60% of all people. Equivalents assume you trained for the distance.</p>
       </div>
-      <div>
-        <h2>Data</h2>
+      <div class="subpanel" id="dt-src" role="tabpanel" hidden>
         <ul class="sources" id="sources"></ul>
         <p class="fine">World records as ratified by World Athletics, checked November 2026. Built by <a href="/">Utkarsh Agarwal</a>. <a href="https://github.com/autkarsh025/splits">Source code on GitHub</a>.</p>
       </div>

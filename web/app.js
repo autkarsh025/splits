@@ -1,5 +1,6 @@
 import { DISTANCES, byId, WORLD_RECORDS, vdot, predict, riegel, trainingPaces, fasterThan, timeAt, heatSlowdown, fmt, parseTime } from './model.js';
 import { planGoal, checkpoints, phases, raceDay } from './plan.js';
+import { weekPlan, ROUTINES, weekKey, DAYS } from './training.js';
 
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); e.innerHTML = html; return e; };
@@ -22,7 +23,7 @@ const PRESETS = {
 };
 
 let D = null;  // race data
-const S = { prs: [], sex: 'men', age: '', unit: 'mi', planUnit: 'mi', planDist: null, planTime: '', course: 'flat', bold: 'real', pacing: 'negative', field: 'all', tab: 'me' };
+const S = { prs: [], sex: 'men', age: '', unit: 'mi', planUnit: 'mi', planDist: null, planTime: '', course: 'flat', bold: 'real', pacing: 'negative', field: 'all', tab: 'me', wk: { volume: 25, days: 5, level: 'regular', focus: null, unit: 'mi', offset: 0 } };
 const TABS = ['me', 'rank', 'ghost', 'plan', 'train', 'data'];
 
 // ------------------------------------------------------------------ state <-> URL
@@ -42,7 +43,7 @@ function toHash() {
   if (S.tab !== 'me') q.set('t', S.tab); if (S.tab === 'plan' && S.planDist) q.set('r', S.planDist);
   history.replaceState(null, '', '#' + q.toString());
 }
-function preset(name) { const p = PRESETS[name]; S.prs = p.prs.map(x => [...x]); S.sex = p.sex; S.age = p.age; S.planTime = ''; S.planDist = null; $('#plan-time').value = ''; renderBib(); update(); }
+function preset(name) { const p = PRESETS[name]; S.prs = p.prs.map(x => [...x]); S.sex = p.sex; S.age = p.age; S.planTime = ''; S.planDist = null; S.wk.focus = null; $('#plan-time').value = ''; renderBib(); update(); }
 
 // ------------------------------------------------------------------ bib (inputs)
 function renderBib() {
@@ -264,7 +265,8 @@ function hbars(rows, opts) {
 
 // ------------------------------------------------------------------ sections
 function renderProfile(A) {
-  const sec = $('#profile-sec'); if (A.prs.length < 2) { sec.hidden = true; return; } sec.hidden = false;
+  const tab = $('#sub-prof'); tab.hidden = A.prs.length < 2;
+  if (tab.hidden) { if (tab.getAttribute('aria-selected') === 'true') selectSub(tab.parentElement.querySelector('[data-sub=me-equiv]')); return; }
   const lo = Math.min(...A.prs.map(p => p.v)) - 4, hi = A.best.v + 1;
   const xs = A.prs.map(p => Math.log(p.d.m)), ys = A.prs.map(p => p.v), mx = xs.reduce((a, b) => a + b) / xs.length, my = ys.reduce((a, b) => a + b) / ys.length;
   const slope = xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0) / (xs.reduce((s, x) => s + (x - mx) ** 2, 0) || 1);
@@ -326,6 +328,33 @@ function renderWeather(A) {
   $('#wxout').innerHTML = f <= 0 ? `<b>No slowdown</b><span>Conditions are good for fast times.</span>`
     : `<b>+${(f * 100).toFixed(1)}%</b><span>Your ${b.d.label} becomes about <strong>${fmt(b.s * (1 + f))}</strong> (+${fmt(b.s * f)}); a marathon would lose about ${fmt(A.marathon * f)}.</span>`;
 }
+// ------------------------------------------------------------------ training week and log
+const focusFor = m => (m <= 3300 ? 'mile' : m <= 6000 ? '5k' : m <= 16000 ? '10k' : m <= 25000 ? 'half' : 'marathon');
+const mondayOf = off => { const d = new Date(); d.setDate(d.getDate() + 7 * off); return weekKey(d); };
+const logKey = () => `oval-log-${mondayOf(S.wk.offset)}`;
+const readLog = () => { try { return JSON.parse(localStorage.getItem(logKey()) || '{}'); } catch { return {}; } };
+const writeLog = L => { try { localStorage.setItem(logKey(), JSON.stringify(L)); } catch {} };
+function renderWeek(A) {
+  const W = S.wk; if (!W.focus) W.focus = focusFor(A.best.d.m);
+  $('#wk-vol').value = W.volume; $('#wk-days').value = W.days; $('#wk-focus').value = W.focus; $('#wk-unit').textContent = W.unit;
+  document.querySelectorAll('#wkform [data-wk]').forEach(g => g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === W[g.dataset.wk])));
+  const P = weekPlan(A.V, W), L = readLog();
+  const mon = new Date(mondayOf(W.offset) + 'T12:00:00'), dd = i => { const d = new Date(mon); d.setDate(d.getDate() + i); return d; };
+  const md = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  $('#wk-range').textContent = W.offset === 0 ? `This week, ${md(dd(0))} to ${md(dd(6))}` : `${md(dd(0))} to ${md(dd(6))}`;
+  $('#wk-sum').innerHTML = `<b>${P.total.toFixed(1)} ${P.unit}</b> over ${W.days} days, about <b>${Math.round(P.easyShare * 100)}% easy</b>.`;
+  $('#wk-note').hidden = !P.note; $('#wk-note').textContent = P.note;
+  const fmtD = x => (x ? `${x.toFixed(1)} ${P.unit}` : '–');
+  $('#week').innerHTML = P.days.map((d, i) => { const l = L[i] || {};
+    return `<li class="${d.type}${l.done ? ' done' : ''}" data-i="${i}"><span class="d"><b>${d.day}</b><small>${md(dd(i))}</small></span>
+      <span class="s"><b><i class="k" aria-hidden="true"></i>${d.title}</b>${d.strength ? '<span class="tag">+ strength</span>' : ''}<p>${d.detail}${d.short && d.dist ? ' Keep it short this week.' : ''}</p></span>
+      <span class="km">${fmtD(d.dist)}</span>
+      <span class="log">${d.type === 'rest' ? '' : `<input type="number" step="0.1" min="0" placeholder="${P.unit}" aria-label="${d.day} actual ${P.unit}" value="${esc(l.dist ?? '')}"><input type="checkbox" aria-label="${d.day} done"${l.done ? ' checked' : ''}>`}</span></li>`; }).join('');
+  const done = P.days.reduce((s, d, i) => { const l = L[i] || {}; return s + (l.done ? (parseFloat(l.dist) || d.dist) : 0); }, 0);
+  const runs = P.days.filter(d => d.type !== 'rest').length, ticked = P.days.filter((d, i) => (L[i] || {}).done).length;
+  $('#wk-done').innerHTML = `Logged <b>${done.toFixed(1)} of ${P.total.toFixed(1)} ${P.unit}</b>, ${ticked} of ${runs} runs done.`;
+}
+
 const lower = l => (/^(Half marathon|Marathon|Mile)$/.test(l) ? l.toLowerCase() : l);
 function cpLabel(r, step, m, unit) {
   if (r.half) return 'Halfway';
@@ -369,7 +398,12 @@ function renderRacePlan(A) {
 }
 
 // ------------------------------------------------------------------ tabs
+function selectSub(btn) {
+  const bar = btn.parentElement;
+  bar.querySelectorAll('[role=tab]').forEach(b => { const on = b === btn; b.setAttribute('aria-selected', on); const p = $('#' + b.dataset.sub); if (p) p.hidden = !on; });
+}
 function showTab(id, focus = false) {
+  if (id !== 'me' && !analyse()) { id = 'me'; const inp = $('#prs input'); if (inp) inp.focus(); }
   S.tab = id;
   TABS.forEach(t => { const b = $(`#tab-${t}`), on = t === id; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; $(`#p-${t}`).hidden = !on; });
   if (focus) $(`#tab-${id}`).focus();
@@ -426,8 +460,12 @@ let lastKey = '';
 function update() {
   const A = analyse();
   toHash();
-  if (!A) { $('#v-head').textContent = 'Enter a race time to start.'; $('#ranks').innerHTML = ''; $('#v-event').textContent = ''; return; }
-  renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderRacePlan(A); renderData(A);
+  const ready = !!A;
+  document.body.dataset.state = ready ? 'ready' : 'empty';
+  $('#verdict').hidden = $('#me-more').hidden = $('#vd').hidden = !ready;
+  TABS.forEach(t => { if (t !== 'me') $(`#tab-${t}`).setAttribute('aria-disabled', !ready); });
+  if (!A) { if (S.tab !== 'me') showTab('me'); return; }
+  renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderRacePlan(A); renderWeek(A); renderData(A);
   const key = `${A.best.d.id}:${A.best.s}:${S.sex}`;
   if (key !== lastKey) { lastKey = key; setupGhost(A); }
 }
@@ -437,7 +475,18 @@ function wire() {
   $('#sex').onchange = e => { S.sex = e.target.value; S.field = S.sex; update(); };
   $('#age').oninput = e => { S.age = e.target.value; update(); };
   document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => preset(b.dataset.preset));
-  $('#share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); $('#sharehint').textContent = 'Link copied. Anyone who opens it sees these results.'; } catch { $('#sharehint').textContent = location.href; } };
+  $('#share').onclick = async () => { const b = $('#share'); try { await navigator.clipboard.writeText(location.href); b.textContent = 'Link copied'; } catch { b.textContent = 'Copy the address bar to share'; } setTimeout(() => { b.textContent = 'Copy link'; }, 2500); };
+  document.querySelectorAll('.subtabs').forEach(bar => bar.onclick = e => { const b = e.target.closest('[role=tab]'); if (b) selectSub(b); });
+  document.querySelectorAll('#wkform [data-wk]').forEach(g => g.onclick = e => { const b = e.target.closest('button'); if (!b) return; S.wk[g.dataset.wk] = b.dataset.v; update(); });
+  $('#wk-vol').oninput = e => { S.wk.volume = Math.max(5, Math.min(150, +e.target.value || 0)); update(); };
+  $('#wk-days').onchange = e => { S.wk.days = +e.target.value; update(); };
+  $('#wk-focus').onchange = e => { S.wk.focus = e.target.value; update(); };
+  $('#wk-prev').onclick = () => { S.wk.offset--; update(); };
+  $('#wk-next').onclick = () => { S.wk.offset++; update(); };
+  $('#wk-clear').onclick = () => { try { localStorage.removeItem(logKey()); } catch {} update(); };
+  $('#week').onchange = e => { const li = e.target.closest('li'); if (!li) return; const L = readLog(), i = +li.dataset.i; L[i] = L[i] || {};
+    if (e.target.type === 'checkbox') L[i].done = e.target.checked; else L[i].dist = e.target.value; writeLog(L); update(); };
+  $('#routines').innerHTML = Object.values(ROUTINES).map(r => `<section class="routine"><h3>${r.title}</h3><p class="t">${r.time}</p><ol>${r.items.map(([a, b]) => `<li><span>${a}</span><span>${b}</span></li>`).join('')}</ol></section>`).join('');
   $('#play').onclick = play;
   $('#unitseg').querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', x.dataset.unit === S.unit));
   $('#unitseg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.unit = b.dataset.unit; $('#unitseg').querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', x === b)); update(); };
@@ -463,6 +512,6 @@ function wire() {
 
 fetch('races.json').then(r => r.json()).then(data => {
   D = data;
-  if (!fromHash()) { const p = PRESETS.me; S.prs = p.prs.map(x => [...x]); S.sex = p.sex; }
+  if (!fromHash()) { S.prs = [['5k', '']]; S.sex = 'all'; }
   wire(); renderBib(); showTab(S.tab); update();
 }).catch(() => { $('#v-head').textContent = 'Could not load race data.'; });

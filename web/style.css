@@ -1,15 +1,16 @@
 /* Oval. Light pages, one brick-red accent from the track, a thin lane stripe under the header,
    Archivo throughout (slightly wide for headings, normal for reading, narrow for tables). */
 :root {
-  --paper: #ffffff; --soft: #f7f6f3; --ink: #1c1c1c; --ink2: #4a4a4a; --mute: #7a7a7a; --rule: #e4e2dd;
-  --track: #d9533b; --track-ink: #b4412a; --track-soft: #fcebe6; --lane: #ffffff;
-  --infield: #dce9dc; --board: #ffffff;
-  --you: #f2b52c; --wr: #ffffff; --p1: #7fb8e8; --p10: #8fd18a; --p50: #ef9bb8; --cif: #f5944f;
+  --paper: #ffffff; --soft: #f3f5f8; --ink: #161a22; --ink2: #4a515c; --mute: #7a818c; --rule: #e3e7ec; --field: #c9cfd7;
+  --track: #ec5a3c; --track-ink: #c4401f; --track-soft: #fdeee9; --lane: #ffffff;
+  --pace: #4d65ff; --pace-soft: #eef0ff;
+  --infield: #e8edf3; --board: #ffffff;
+  --you: #f2b52c; --wr: #ffffff; --p1: #6fa8ff; --p10: #7fcf9a; --p50: #f29ac0; --cif: #f6924c;
   --accent: var(--track-ink); --accent-soft: var(--track-soft);
   --f: "Archivo", "Helvetica Neue", Arial, sans-serif;
 }
-:root[data-theme=night] { --paper: #0e2a1e; --soft: #143627; --ink: #f5efdf; --ink2: #cfd8c9; --mute: #8fa89a; --rule: #22493a; --track: #e0644a; --track-ink: #ff8a6e; --track-soft: #3a3020; --infield: #1d5238; --board: #143627; --you: #ffd23f }
-@media (prefers-color-scheme: dark) { :root:not([data-theme=day]) { --paper: #0e2a1e; --soft: #143627; --ink: #f5efdf; --ink2: #cfd8c9; --mute: #8fa89a; --rule: #22493a; --track: #e0644a; --track-ink: #ff8a6e; --track-soft: #3a3020; --infield: #1d5238; --board: #143627; --you: #ffd23f } }
+:root[data-theme=night] { --paper: #10141f; --soft: #171d2b; --ink: #eef0f4; --ink2: #b9c0cc; --mute: #8590a2; --rule: #252d3e; --field: #34405a; --track: #f0674a; --track-ink: #ff8a6e; --track-soft: #2c2026; --pace: #8c9dff; --pace-soft: #1d2340; --infield: #1b2232; --board: #171d2b; color-scheme: dark }
+@media (prefers-color-scheme: dark) { :root:not([data-theme=day]) { --paper: #10141f; --soft: #171d2b; --ink: #eef0f4; --ink2: #b9c0cc; --mute: #8590a2; --rule: #252d3e; --field: #34405a; --track: #f0674a; --track-ink: #ff8a6e; --track-soft: #2c2026; --pace: #8c9dff; --pace-soft: #1d2340; --infield: #1b2232; --board: #171d2b; color-scheme: dark } }
 * { box-sizing: border-box; min-width: 0 }
 [hidden] { display: none !important }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 17px/1.55 var(--f); -webkit-font-smoothing: antialiased; overflow-x: clip }
@@ -31,9 +32,7 @@ h1, h2, h3 { font-variation-settings: "wdth" 112; margin: 0 }
 .name { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 20px; font-variation-settings: "wdth" 120; text-decoration: none; flex: none }
 .logo { width: 40px; height: 24px; flex: none }
 .lg-track { fill: var(--track) } .lg-lane { fill: none; stroke: #fff; stroke-width: .9; opacity: .85 }
-.lg-infield { fill: #1d5238 } .lg-finish { stroke: #fff; stroke-width: 1.6 }
-:root[data-theme=night] .lg-infield { fill: #2a7050 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme=day]) .lg-infield { fill: #2a7050 } }
+.lg-infield { fill: #1b2333 } .lg-finish { stroke: #fff; stroke-width: 1.6 }
 .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; align-self: stretch; margin-right: auto }
 .tabs button { flex: none; border: 0; background: none; padding: 0 12px; font-size: 16px; font-weight: 600; color: var(--ink2); border-bottom: 3px solid transparent; border-top: 3px solid transparent }
 .tabs button:hover { color: var(--ink) }
@@ -48,7 +47,7 @@ h1, h2, h3 { font-variation-settings: "wdth" 112; margin: 0 }
 /* sections */
 .sec { padding: clamp(30px, 4vw, 48px) 0; border-bottom: 1px solid var(--rule) }
 .page > .sec:last-child { border-bottom: 0 }
-.sec h2 { font-size: clamp(22px, 2.1vw, 27px); font-weight: 700; line-height: 1.2; margin-bottom: 6px }
+.sec h2 { font-size: clamp(21px, 2vw, 25px); font-weight: 650; line-height: 1.2; margin-bottom: 6px }
 .sub { color: var(--ink2); margin: 0 0 18px; max-width: 46em }
 .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px) }
 .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px }
@@ -57,18 +56,17 @@ h1, h2, h3 { font-variation-settings: "wdth" 112; margin: 0 }
 
 /* your times */
 .top { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); gap: clamp(28px, 5vw, 64px); align-items: start }
-.entry h1 { font-size: clamp(30px, 3.2vw, 40px); font-weight: 750; line-height: 1.1; margin-bottom: 8px }
+.entry h1 { font-size: clamp(28px, 2.8vw, 36px); font-weight: 700; line-height: 1.1; margin-bottom: 8px }
 .lede { color: var(--ink2); margin: 0 0 18px; max-width: 32em }
-.bib { border: 1.5px solid var(--ink); border-radius: 8px; padding: 0 16px 16px; background: var(--paper) }
-.bibhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 -16px 14px; padding: 9px 16px; border-bottom: 1.5px solid var(--ink); border-radius: 6px 6px 0 0; background: var(--track-soft); font-weight: 700; font-size: 15px; font-variation-settings: "wdth" 110 }
+.bib { border: 1px solid var(--field); border-radius: 8px; padding: 0 16px 16px; background: var(--paper) }
+.bibhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 -16px 14px; padding: 9px 16px; border-bottom: 1px solid var(--rule); border-radius: 7px 7px 0 0; background: var(--soft); font-weight: 700; font-size: 15px; font-variation-settings: "wdth" 110 }
 .bibhead .vd { font-weight: 500; font-size: 14px; color: var(--ink2); font-variation-settings: "wdth" 90 }
 .bibhead output { font-weight: 800; font-size: 20px; color: var(--ink); margin-left: 4px; font-variation-settings: "wdth" 115; font-variant-numeric: tabular-nums }
 .prhead, .pr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 36px; gap: 8px; align-items: center }
 .prhead { font-size: 13px; font-weight: 600; color: var(--ink2); margin-bottom: 4px }
 .pr { margin-bottom: 8px }
 .pr select, .pr input, .who select, .who input, .field select, .field input, .pair input, .conv input, .conv select {
-  height: 44px; border: 1px solid #c9c6bf; border-radius: 6px; background: var(--paper); padding: 0 10px; width: 100%; font-size: 17px }
-:root[data-theme=night] :is(.pr select, .pr input, .who select, .who input, .field select, .field input, .pair input, .conv input, .conv select) { border-color: #2f5e4a }
+  height: 44px; border: 1px solid var(--field); border-radius: 6px; background: var(--paper); padding: 0 10px; width: 100%; font-size: 17px }
 .pr input { font-weight: 700; font-size: 19px; text-align: right; font-variant-numeric: tabular-nums }
 input:focus, select:focus { outline: none; border-color: var(--track) !important; box-shadow: 0 0 0 3px var(--track-soft) }
 .pr input[aria-invalid=true] { border-color: var(--track) } .pr .err { grid-column: 1 / -1; font-size: 14px; color: var(--track-ink); margin-top: -2px }
@@ -80,11 +78,11 @@ input:focus, select:focus { outline: none; border-color: var(--track) !important
 .examples button { border: 1px solid var(--rule); background: var(--soft); border-radius: 99px; padding: 3px 12px; font-size: 14px; color: var(--ink) }
 .examples button:hover { border-color: var(--track) }
 
-.verdict h2 { font-size: clamp(24px, 2.5vw, 32px); font-weight: 700; line-height: 1.2; margin-bottom: 20px; max-width: 22em }
+.verdict h2 { font-size: clamp(22px, 2.2vw, 28px); font-weight: 650; line-height: 1.2; margin-bottom: 20px; max-width: 22em }
 .verdict h2 em { font-style: normal; color: var(--track-ink) }
-.ranks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 2px solid var(--ink); margin-bottom: 10px }
+.ranks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--rule); margin-bottom: 10px }
 .rank { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--rule) }
-.rank b { display: block; font-size: 32px; font-weight: 750; line-height: 1.05; font-variation-settings: "wdth" 110; font-variant-numeric: tabular-nums }
+.rank b { display: block; font-size: 27px; font-weight: 700; line-height: 1.05; font-variation-settings: "wdth" 110; font-variant-numeric: tabular-nums }
 .rank span { display: block; font-size: 15px; color: var(--ink2); margin-top: 4px; line-height: 1.35 }
 .rank small { display: block; font-size: 13px; color: var(--mute); margin-top: 3px; font-variation-settings: "wdth" 90 }
 
@@ -97,8 +95,7 @@ table.results td.t { font-weight: 700; font-size: 17px; white-space: nowrap; fon
 table.results tr.me td { background: var(--track-soft) }
 table.results tr.me td:first-child { box-shadow: inset 3px 0 0 var(--track); padding-left: 10px }
 table.results .pl { font-size: 13px; color: var(--mute) }
-.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid #c9c6bf; border-radius: 6px; overflow: hidden; margin: 0 0 14px }
-:root[data-theme=night] .seg { border-color: #2f5e4a }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--field); border-radius: 6px; overflow: hidden; margin: 0 0 14px }
 .seg button { border: 0; background: var(--paper); padding: 6px 13px; font-size: 15px; font-weight: 600; color: var(--ink2) }
 .seg button + button { border-left: 1px solid var(--rule) }
 .seg button:hover { color: var(--ink) }
@@ -196,23 +193,65 @@ table.results .pl { font-size: 13px; color: var(--mute) }
 @media print {
   .mast, .ctx, .foot, .planform, .planbtns, .why, .page:not(#p-plan) { display: none !important }
   #p-plan { display: block !important } .planlayout { display: block } .sec { padding: 0; border: 0 }
+  #p-plan .subpanel { display: block !important } #p-plan .subtabs { display: none }
   body { font-size: 12pt }
   .band { display: block; margin-top: 18px; border: 1px dashed #888; padding: 8px 10px; width: fit-content; font-size: 10pt }
   .band table { border-collapse: collapse } .band td { padding: 1px 10px 1px 0 }
 }
 
-/* night: the infield under floodlights. Highlights glow yellow, like the "you" runner. */
-:root[data-theme=night] { color-scheme: dark }
-:root[data-theme=night] table.results tr.me td { background: rgba(255,210,63,.10) }
-:root[data-theme=night] table.results tr.me td:first-child { box-shadow: inset 3px 0 0 var(--you) }
-:root[data-theme=night] .bibhead { background: rgba(255,210,63,.10) }
-:root[data-theme=night] .bib, :root[data-theme=night] .bibhead { border-color: #4f7d68 }
-:root[data-theme=night] .mast::after { background-color: var(--track) }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme=day]) { color-scheme: dark }
-  :root:not([data-theme=day]) table.results tr.me td { background: rgba(255,210,63,.10) }
-  :root:not([data-theme=day]) table.results tr.me td:first-child { box-shadow: inset 3px 0 0 var(--you) }
-  :root:not([data-theme=day]) .bibhead { background: rgba(255,210,63,.10) }
-  :root:not([data-theme=day]) .bib, :root:not([data-theme=day]) .bibhead { border-color: #4f7d68 }
-  :root:not([data-theme=day]) :is(.pr select, .pr input, .who select, .who input, .field select, .field input, .pair input, .conv input, .conv select), :root:not([data-theme=day]) .seg { border-color: #2f5e4a }
+
+/* progressive disclosure: before a time is entered, only the form shows */
+body[data-state=empty] .top { grid-template-columns: minmax(0, 600px); justify-content: center }
+body[data-state=empty] .sec.first { padding-top: clamp(40px, 8vh, 96px); border-bottom: 0 }
+.tabs button[aria-disabled=true] { opacity: .4; cursor: not-allowed }
+.sec.first { border-bottom: 0 }
+.sec h3 { font-size: 18px; font-weight: 650; margin: 0 0 6px; font-variation-settings: "wdth" 108 }
+.narrow { max-width: 760px }
+.next { font-size: 15px; color: var(--ink2); margin: 14px 0 0; line-height: 1.7 }
+.linkbtn.quiet { color: var(--mute); font-weight: 500; margin-left: 6px }
+.ghostbtn { border: 1px solid var(--field); background: var(--paper); border-radius: 6px; padding: 2px 10px; font-size: 18px; line-height: 1.2; color: var(--ink2) }
+.ghostbtn:hover { border-color: var(--ink2); color: var(--ink) }
+
+/* sub-tabs */
+.subtabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--rule); margin: 14px 0 22px }
+.subtabs button { flex: none; border: 0; background: none; padding: 9px 14px 10px; font-size: 15px; font-weight: 600; color: var(--mute); border-bottom: 2px solid transparent; margin-bottom: -1px }
+.subtabs button:first-child { padding-left: 0 }
+.subtabs button:hover { color: var(--ink) }
+.subtabs button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--track) }
+.planout .subtabs { margin-top: 24px }
+
+/* weekly plan */
+.wkform { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; padding: 16px 18px; background: var(--soft); border-radius: 10px; margin-bottom: 18px }
+.wkform .field { margin: 0 } .wkform .seg { margin: 0; background: var(--paper) } .wkform select { width: 170px }
+.vol { position: relative; display: block; width: 120px } .vol input { padding-right: 36px; font-weight: 700 } .vol span { position: absolute; right: 12px; top: 12px; color: var(--mute); font-weight: 500 }
+.wkhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap }
+.wkhead p { margin: 0; font-size: 17px } .wkhead b { font-weight: 700 }
+.wknav { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--ink2) }
+.note { background: var(--pace-soft); border-radius: 8px; padding: 9px 12px; font-size: 15px; color: var(--ink2); margin: 12px 0 0 }
+.week { list-style: none; padding: 0; margin: 14px 0 0; border-top: 1px solid var(--rule) }
+.week li { display: grid; grid-template-columns: 92px minmax(0, 1fr) 90px 150px; gap: 16px; align-items: start; padding: 13px 0; border-bottom: 1px solid var(--rule) }
+.week .d b { display: block; font-weight: 700 } .week .d small { color: var(--mute); font-size: 13px }
+.week .s b { font-weight: 650 } .week .s p { margin: 3px 0 0; color: var(--ink2); font-size: 15px; line-height: 1.45 }
+.week .tag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--pace); background: var(--pace-soft); border-radius: 99px; padding: 1px 8px; margin-left: 8px; vertical-align: 2px }
+.week .k { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: 2px; background: var(--field) }
+.week li.quality .k { background: var(--track) } .week li.long .k { background: var(--pace) } .week li.rest { color: var(--mute) } .week li.rest .s b { font-weight: 500 }
+.week .km { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums } .week li.rest .km { font-weight: 400 }
+.week .log { display: flex; align-items: center; gap: 8px; justify-content: flex-end }
+.week .log input[type=number] { width: 72px; height: 34px; border: 1px solid var(--field); border-radius: 6px; background: var(--paper); padding: 0 8px; font-size: 15px; text-align: right }
+.week .log input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--track) }
+.week li.done .s b { text-decoration: line-through; text-decoration-color: var(--track); text-decoration-thickness: 2px }
+.wkfoot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 15px; color: var(--ink2) }
+.wkfoot b { color: var(--ink) }
+
+/* routines */
+.routines { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px }
+.routine { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px }
+.routine h3 { margin-bottom: 2px } .routine .t { color: var(--mute); font-size: 14px; margin: 0 0 10px }
+.routine ol { margin: 0; padding: 0; list-style: none } .routine li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--rule); font-size: 15px }
+.routine li span:last-child { color: var(--ink2); text-align: right }
+
+@media (max-width: 900px) { .routines { grid-template-columns: minmax(0, 1fr) } }
+@media (max-width: 640px) {
+  .week li { grid-template-columns: 64px minmax(0, 1fr) 60px; } .week .log { grid-column: 2 / -1; justify-content: flex-start }
+  .wkform select { width: 100% } .wkform .field { flex: 1 1 140px }
 }

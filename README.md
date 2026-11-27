@@ -10,6 +10,7 @@ Put in one or more race PRs, from 800 m to the marathon, and Oval shows:
 - **A ghost race**: you against the world record and the top 1%, top 10% and median marathoners, animated on a 400 m track
 - **Your PR profile**: which PR is really your best, and whether you lean toward speed or endurance
 - **Six pages** (Your times, Rankings, Ghost race, Race plan, Training, The data) under tabs at the top
+- **Weekly training plan and log**: a week built from your fitness, weekly volume, days per week, experience and goal race, about 80% easy (Seiler) with Daniels' limits on long runs and hard sessions. Tick off runs and log actual distance; the log stays in your browser. Warm-up, cool-down stretches and a twice-weekly strength routine
 - **Race plan builder**: pick a race, course, forecast and how bold to be. Oval sets a goal from your races (leaning on the one closest in distance), then writes the plan: how to run each phase, checkpoint splits with an on-track window, warmup, gels and drinks. Prints on one page with a pace band
 - **Equivalent times** at every distance (VDOT and Riegel), **training paces**, a **goal finder** and a **pace converter**
 
@@ -23,6 +24,7 @@ Everything recomputes as you type, and the URL holds your inputs so a result can
 | `data/build_data.py` | Downloads the open datasets in GitHub Actions and reduces millions of results to a 60 KB file of quantile tables (`data/races.json`) |
 | `web/app.js` | The page: inputs, rankings, the ghost race (canvas), charts (SVG) |
 | `web/plan.js` | The race plan: goal time with adjustments for distance beyond your longest race, course, heat and boldness; checkpoints; phases; race-morning notes |
+| `web/training.js` | Weekly plan generator, routines, week keys |
 | `test/` | Checks the model against Daniels' published tables, percentile math, split plans, and that the data is sane |
 
 Workflows: `data` rebuilds the distributions monthly; `site` runs the tests, builds the page and publishes it on every push.

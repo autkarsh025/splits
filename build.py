@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "public"
-ASSETS = ["style.css", "app.js", "model.js", "plan.js", "races.json"]
+ASSETS = ["style.css", "app.js", "model.js", "plan.js", "training.js", "races.json"]
 
 
 def build() -> Path:
@@ -22,11 +22,11 @@ def build() -> Path:
     for name in ASSETS:
         h.update((OUT / name).read_bytes())
     v = h.hexdigest()[:10]
-    for name in ["index.html", "app.js", "plan.js"]:
+    for name in ["index.html", "app.js", "plan.js", "training.js"]:
         p = OUT / name
         text = p.read_text()
         # href="style.css", src="app.js", './model.js', 'races.json'
-        text = re.sub(r"""(["'])(\./)?(style\.css|app\.js|model\.js|plan\.js|races\.json)\1""",
+        text = re.sub(r"""(["'])(\./)?(style\.css|app\.js|model\.js|plan\.js|training\.js|races\.json)\1""",
                       lambda m: f"{m.group(1)}{m.group(2) or ''}{m.group(3)}?v={v}{m.group(1)}", text)
         p.write_text(text)
     return OUT
