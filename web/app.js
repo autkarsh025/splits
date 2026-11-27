@@ -154,14 +154,19 @@ function setupGhost(A) {
   ];
   if (Math.abs(d.m - 5000) < 1) r.splice(2, 0, { name: 'CIF state champion', note: 'Conor Lott, 2025', t: CIF[0].t, c: '--cif' });
   G.runners = r.map((x, i) => ({ ...x, lane: i + 1 }));
-  G.dist = d.m; G.T = Math.max(...r.map(x => x.t)); G.t = 0; G.playing = false; G.done = [];
+  G.dist = d.m; G.T = Math.max(...r.map(x => x.t)); setSpeeds(A.best.s); G.t = 0; G.playing = false; G.done = [];
   $('#play').textContent = 'Start race'; drawTrack(); board();
 }
-function ghostDuration() { return (6 + 3 * Math.log10(G.dist / 400)) * 1000 / +$('#speed').value; }
+// playback speed: race seconds per real second. The default makes your race take about half a minute.
+const SPEEDS = [1, 2, 5, 10, 20, 50, 100, 200];
+function setSpeeds(youT) {
+  const sel = $('#speed'), want = youT / 30, def = SPEEDS.reduce((a, b) => (Math.abs(Math.log(b / want)) < Math.abs(Math.log(a / want)) ? b : a));
+  sel.innerHTML = SPEEDS.map(x => `<option value="${x}"${x === def ? ' selected' : ''}>${x === 1 ? 'Real time' : `${x}× real time`}</option>`).join('');
+}
 function step(now) {
   if (!G.playing) return;
   const dt = now - G.last; G.last = now;
-  G.t = Math.min(G.T, G.t + (dt / ghostDuration()) * G.T);
+  G.t = Math.min(G.T, G.t + Math.min(dt, 100) / 1000 * +$('#speed').value);
   drawTrack(); board();
   if (G.t >= G.T) { G.playing = false; $('#play').textContent = 'Race again'; return; }
   G.raf = requestAnimationFrame(step);
@@ -188,7 +193,7 @@ function drawTrack() {
   // finish line at the end of the home straight
   g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(cx + sx, cy + R * scale); g.lineTo(cx + sx, cy + outer * scale); g.stroke();
   g.fillStyle = 'rgba(255,255,255,.9)'; g.font = `600 ${Math.max(9, 10 * scale / 2.4)}px ${css('--f')}`; g.textAlign = 'center';
-  for (let i = 1; i <= lanes; i++) g.fillText(String(i), cx + sx + 14, cy + (R + (i - .5) * lw) * scale + 4);
+  for (let i = 1; i <= lanes; i++) g.fillText(String(i), cx + sx - 12, cy + (R + (i - .5) * lw) * scale + 4);
   // runners: counterclockwise, starting at the finish line
   const pos = (s, lane) => {
     const r = (R + (lane - .5) * lw) * scale, cur = Math.PI * r / scale, segS = straight, tot = 2 * segS + 2 * cur;
@@ -202,7 +207,10 @@ function drawTrack() {
   sorted.forEach(rn => {
     const s = Math.min(G.dist, G.dist * G.t / rn.t), [x, y] = pos(s, rn.lane);
     g.beginPath(); g.arc(x, y, rn.you ? 7.5 : 6, 0, 7); g.fillStyle = css(rn.c); g.fill(); g.lineWidth = 1.5; g.strokeStyle = 'rgba(0,0,0,.55)'; g.stroke();
-    if (rn.you || rn.name === 'World record') { const t = rn.you ? 'You' : 'WR'; g.font = `600 13px ${css('--f')}`; g.textAlign = 'left'; g.lineWidth = 3; g.strokeStyle = css('--paper'); g.strokeText(t, x + 10, y - 8); g.fillStyle = css('--ink'); g.fillText(t, x + 10, y - 8); }
+    rn.xy = [x, y];
+    const you = G.runners.find(r => r.you);
+    const label = rn.you || (rn.name === 'World record' && you.xy && Math.hypot(you.xy[0] - x, you.xy[1] - y) > 28);
+    if (label) { const t = rn.you ? 'You' : 'WR'; g.font = `600 13px ${css('--f')}`; g.textAlign = 'left'; g.lineWidth = 3; g.strokeStyle = css('--paper'); g.strokeText(t, x + 10, y - 8); g.fillStyle = css('--ink'); g.fillText(t, x + 10, y - 8); }
   });
 }
 function board() {
