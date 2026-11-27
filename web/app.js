@@ -23,13 +23,14 @@ const PRESETS = {
 };
 
 let D = null;  // race data
-const S = { prs: [], sex: 'men', age: '', unit: 'mi', planUnit: 'mi', planDist: null, planTime: '', course: 'flat', bold: 'real', pacing: 'negative', field: 'all', tab: 'me', wk: { volume: 25, days: 5, level: 'regular', focus: null, unit: 'mi', offset: 0 } };
+const S = { prs: [], sex: 'men', age: '', unit: 'mi', planUnit: 'mi', planDist: null, planTime: '', course: 'flat', bold: 'real', pacing: 'negative', field: 'all', tab: 'me', submitted: false, wk: { volume: 25, days: 5, level: 'regular', focus: null, unit: 'mi', offset: 0 } };
 const TABS = ['me', 'rank', 'ghost', 'plan', 'train', 'data'];
 
 // ------------------------------------------------------------------ state <-> URL
 function fromHash() {
   const h = new URLSearchParams(location.hash.slice(1));
   if (!h.get('p')) return false;
+  S.submitted = true;
   S.prs = h.get('p').split(',').map(x => { const i = x.indexOf('-'); return [x.slice(0, i), x.slice(i + 1)]; }).filter(([d]) => byId(d));
   S.sex = ['all', 'men', 'women'].includes(h.get('s')) ? h.get('s') : 'all';
   S.age = h.get('a') || '';
@@ -43,7 +44,7 @@ function toHash() {
   if (S.tab !== 'me') q.set('t', S.tab); if (S.tab === 'plan' && S.planDist) q.set('r', S.planDist);
   history.replaceState(null, '', '#' + q.toString());
 }
-function preset(name) { const p = PRESETS[name]; S.prs = p.prs.map(x => [...x]); S.sex = p.sex; S.age = p.age; S.planTime = ''; S.planDist = null; S.wk.focus = null; $('#plan-time').value = ''; renderBib(); update(); }
+function preset(name) { S.submitted = true; const p = PRESETS[name]; S.prs = p.prs.map(x => [...x]); S.sex = p.sex; S.age = p.age; S.planTime = ''; S.planDist = null; S.wk.focus = null; $('#plan-time').value = ''; renderBib(); update(); }
 
 // ------------------------------------------------------------------ bib (inputs)
 function renderBib() {
@@ -398,18 +399,19 @@ function renderRacePlan(A) {
 }
 
 // ------------------------------------------------------------------ tabs
+const isReady = () => S.submitted && !!analyse();
 function selectSub(btn) {
   const bar = btn.parentElement;
   bar.querySelectorAll('[role=tab]').forEach(b => { const on = b === btn; b.setAttribute('aria-selected', on); const p = $('#' + b.dataset.sub); if (p) p.hidden = !on; });
 }
 function showTab(id, focus = false) {
-  if (id !== 'me' && !analyse()) { id = 'me'; const inp = $('#prs input'); if (inp) inp.focus(); }
+  if (id !== 'me' && !isReady()) { id = 'me'; const inp = $('#prs input'); if (inp) inp.focus(); }
   S.tab = id;
   TABS.forEach(t => { const b = $(`#tab-${t}`), on = t === id; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; $(`#p-${t}`).hidden = !on; });
   if (focus) $(`#tab-${id}`).focus();
   const strip = $('.tabs'), btn = $(`#tab-${id}`); if (strip.scrollWidth > strip.clientWidth) strip.scrollLeft = Math.max(0, btn.offsetLeft - strip.offsetLeft - 40);
   if (id === 'ghost') drawTrack();
-  $('#ctx').hidden = id === 'me' || !analyse();
+  $('#ctx').hidden = id === 'me' || !isReady();
   toHash();
 }
 
@@ -460,11 +462,12 @@ let lastKey = '';
 function update() {
   const A = analyse();
   toHash();
-  const ready = !!A;
+  if (A) $('#goerr').textContent = '';
+  const ready = !!A && S.submitted;
   document.body.dataset.state = ready ? 'ready' : 'empty';
   $('#verdict').hidden = $('#me-more').hidden = $('#vd').hidden = !ready;
   TABS.forEach(t => { if (t !== 'me') $(`#tab-${t}`).setAttribute('aria-disabled', !ready); });
-  if (!A) { if (S.tab !== 'me') showTab('me'); return; }
+  if (!ready) { if (S.tab !== 'me') showTab('me'); return; }
   renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderRacePlan(A); renderWeek(A); renderData(A);
   const key = `${A.best.d.id}:${A.best.s}:${S.sex}`;
   if (key !== lastKey) { lastKey = key; setupGhost(A); }
@@ -476,6 +479,10 @@ function wire() {
   $('#age').oninput = e => { S.age = e.target.value; update(); };
   document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => preset(b.dataset.preset));
   $('#share').onclick = async () => { const b = $('#share'); try { await navigator.clipboard.writeText(location.href); b.textContent = 'Link copied'; } catch { b.textContent = 'Copy the address bar to share'; } setTimeout(() => { b.textContent = 'Copy link'; }, 2500); };
+  $('#entry').onsubmit = e => { e.preventDefault();
+    if (!analyse()) { $('#goerr').textContent = 'Enter a time first, like 18:30 or 1:45:00.'; const inp = $('#prs input'); if (inp) inp.focus(); return; }
+    $('#goerr').textContent = ''; S.submitted = true; update();
+    const v = $('#verdict'); if (v && innerWidth < 900) v.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   document.querySelectorAll('.subtabs').forEach(bar => bar.onclick = e => { const b = e.target.closest('[role=tab]'); if (b) selectSub(b); });
   document.querySelectorAll('#wkform [data-wk]').forEach(g => g.onclick = e => { const b = e.target.closest('button'); if (!b) return; S.wk[g.dataset.wk] = b.dataset.v; update(); });
   $('#wk-vol').oninput = e => { S.wk.volume = Math.max(5, Math.min(150, +e.target.value || 0)); update(); };
