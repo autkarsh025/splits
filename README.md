@@ -10,7 +10,9 @@ Put in one or more race PRs, from 800 m to the marathon, and Oval shows:
 - **A ghost race**: you against the world record and the top 1%, top 10% and median marathoners, animated on a 400 m track
 - **Your PR profile**: which PR is really your best, and whether you lean toward speed or endurance
 - **Six pages** (Your times, Rankings, Ghost race, Race plan, Training, The data) under tabs at the top
-- **Weekly training plan and log**: a week built from your fitness, weekly volume, days per week, experience and goal race, about 80% easy (Seiler) with Daniels' limits on long runs and hard sessions. Tick off runs and log actual distance; the log stays in your browser. Warm-up, cool-down stretches and a twice-weekly strength routine
+- **Training plan from a few questions**: goal, race date, current mileage, longest run, days, long-run day, experience and injuries. Builds every week to race day with easier weeks and a two-week taper (Bosquet et al. 2007), whole-number distances, about 80% easy (Seiler) with Daniels' limits on long runs and hard sessions. Tick off runs and log actual distance; the log stays in your browser. Warm-up, cool-down stretches and a twice-weekly strength routine
+- **Log**: record runs by hand (distance, time, type, feel, notes); weekly totals and a 12-week chart; logged runs tick off the plan
+- **Ghost race** at any distance with real college runners per event and your friends
 - **Race plan builder**: pick a race, course, forecast and how bold to be. Oval sets a goal from your races (leaning on the one closest in distance), then writes the plan: how to run each phase, checkpoint splits with an on-track window, warmup, gels and drinks. Prints on one page with a pace band
 - **Equivalent times** at every distance (VDOT and Riegel), **training paces**, a **goal finder** and a **pace converter**
 

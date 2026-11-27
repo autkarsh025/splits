@@ -1,6 +1,6 @@
 import { DISTANCES, byId, WORLD_RECORDS, vdot, predict, riegel, trainingPaces, fasterThan, timeAt, heatSlowdown, fmt, parseTime } from './model.js';
 import { planGoal, checkpoints, phases, raceDay } from './plan.js';
-import { weekPlan, ROUTINES, weekKey, DAYS } from './training.js';
+import { weekPlan, seasonPlan, ROUTINES, weekKey } from './training.js';
 
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); e.innerHTML = html; return e; };
@@ -24,7 +24,7 @@ const PRESETS = {
 
 let D = null;  // race data
 const S = { prs: [], sex: 'men', age: '', unit: 'mi', planUnit: 'mi', planDist: null, planTime: '', course: 'flat', bold: 'real', pacing: 'negative', field: 'all', tab: 'me', submitted: false, ghostDist: null, friends: [], wk: { volume: 25, days: 5, level: 'regular', focus: null, unit: 'mi', offset: 0 } };
-const TABS = ['me', 'rank', 'ghost', 'plan', 'train', 'data'];
+const TABS = ['me', 'rank', 'ghost', 'plan', 'train', 'log', 'data'];
 
 // ------------------------------------------------------------------ state <-> URL
 function fromHash() {
@@ -358,30 +358,108 @@ function renderWeather(A) {
     : `<b>+${(f * 100).toFixed(1)}%</b><span>Your ${b.d.label} becomes about <strong>${fmt(b.s * (1 + f))}</strong> (+${fmt(b.s * f)}); a marathon would lose about ${fmt(A.marathon * f)}.</span>`;
 }
 // ------------------------------------------------------------------ training week and log
+// ------------------------------------------------------------------ training plan: questions, season, week
 const focusFor = m => (m <= 3300 ? 'mile' : m <= 6000 ? '5k' : m <= 16000 ? '10k' : m <= 25000 ? 'half' : 'marathon');
-const mondayOf = off => { const d = new Date(); d.setDate(d.getDate() + 7 * off); return weekKey(d); };
-const logKey = () => `oval-log-${mondayOf(S.wk.offset)}`;
-const readLog = () => { try { return JSON.parse(localStorage.getItem(logKey()) || '{}'); } catch { return {}; } };
-const writeLog = L => { try { localStorage.setItem(logKey(), JSON.stringify(L)); } catch {} };
-function renderWeek(A) {
-  const W = S.wk; if (!W.focus) W.focus = focusFor(A.best.d.m);
-  $('#wk-vol').value = W.volume; $('#wk-days').value = W.days; $('#wk-focus').value = W.focus; $('#wk-unit').textContent = W.unit;
-  document.querySelectorAll('#wkform [data-wk]').forEach(g => g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === W[g.dataset.wk])));
-  const P = weekPlan(A.V, W), L = readLog();
-  const mon = new Date(mondayOf(W.offset) + 'T12:00:00'), dd = i => { const d = new Date(mon); d.setDate(d.getDate() + i); return d; };
-  const md = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  $('#wk-range').textContent = W.offset === 0 ? `This week, ${md(dd(0))} to ${md(dd(6))}` : `${md(dd(0))} to ${md(dd(6))}`;
-  $('#wk-sum').innerHTML = `<b>${P.total.toFixed(1)} ${P.unit}</b> over ${W.days} days, about <b>${Math.round(P.easyShare * 100)}% easy</b>.`;
-  $('#wk-note').hidden = !P.note; $('#wk-note').textContent = P.note;
-  const fmtD = x => (x ? `${x.toFixed(1)} ${P.unit}` : '–');
-  $('#week').innerHTML = P.days.map((d, i) => { const l = L[i] || {};
-    return `<li class="${d.type}${l.done ? ' done' : ''}" data-i="${i}"><span class="d"><b>${d.day}</b><small>${md(dd(i))}</small></span>
-      <span class="s"><b><i class="k" aria-hidden="true"></i>${d.title}</b>${d.strength ? '<span class="tag">+ strength</span>' : ''}<p>${d.detail}${d.short && d.dist ? ' Keep it short this week.' : ''}</p></span>
-      <span class="km">${fmtD(d.dist)}</span>
-      <span class="log">${d.type === 'rest' ? '' : `<input type="number" step="0.1" min="0" placeholder="${P.unit}" aria-label="${d.day} actual ${P.unit}" value="${esc(l.dist ?? '')}"><input type="checkbox" aria-label="${d.day} done"${l.done ? ' checked' : ''}>`}</span></li>`; }).join('');
-  const done = P.days.reduce((s, d, i) => { const l = L[i] || {}; return s + (l.done ? (parseFloat(l.dist) || d.dist) : 0); }, 0);
-  const runs = P.days.filter(d => d.type !== 'rest').length, ticked = P.days.filter((d, i) => (L[i] || {}).done).length;
-  $('#wk-done').innerHTML = `Logged <b>${done.toFixed(1)} of ${P.total.toFixed(1)} ${P.unit}</b>, ${ticked} of ${runs} runs done.`;
+const store = { get: (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const md = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const unitOf = () => (S.ans && S.ans.unit) || 'mi', UM = () => (unitOf() === 'km' ? KM : MI);
+const QUESTIONS = [
+  { k: 'goal', q: 'What are you training for?', type: 'choice', opts: [['mile', 'Mile'], ['5k', '5K'], ['10k', '10K'], ['half', 'Half marathon'], ['marathon', 'Marathon'], ['fit', 'Just getting fitter']] },
+  { k: 'date', q: 'When is the race?', type: 'date', skip: a => a.goal === 'fit', help: 'Leave it blank if you do not have a date yet, and Oval will build a 12-week block.' },
+  { k: 'unit', q: 'Miles or kilometres?', type: 'choice', opts: [['mi', 'Miles'], ['km', 'Kilometres']] },
+  { k: 'current', q: 'How far do you run in a typical week right now?', type: 'number', help: 'A rough average of the last month is fine. Put 0 if you are just starting.' },
+  { k: 'longest', q: 'What is your longest run in the past month?', type: 'number', help: 'Your long runs will build from here, about 10% at a time.' },
+  { k: 'days', q: 'How many days a week can you run?', type: 'choice', opts: [['3', '3'], ['4', '4'], ['5', '5'], ['6', '6'], ['7', '7']] },
+  { k: 'longDay', q: 'Which day suits your long run?', type: 'choice', opts: [['sat', 'Saturday'], ['sun', 'Sunday']] },
+  { k: 'level', q: 'Which sounds most like you?', type: 'choice', opts: [['new', 'New to running, under a year'], ['regular', 'A year or more, a few races'], ['experienced', 'Years of training, hard workouts are routine']] },
+  { k: 'injury', q: 'Any pain or injury in the last month?', type: 'choice', opts: [['no', 'No'], ['yes', 'Yes']], help: 'If yes, Oval starts you a little lower. Pain that changes how you run is worth seeing a physio or doctor about.' },
+];
+const visibleQs = a => QUESTIONS.filter(q => !(q.skip && q.skip(a)));
+function renderQuiz(A) {
+  const a = S.draft, qs = visibleQs(a), i = Math.min(S.qi, qs.length - 1), Q = qs[i];
+  $('#q-step').textContent = `Question ${i + 1} of ${qs.length}`;
+  $('#q-q').textContent = Q.q; $('#q-help').textContent = Q.help || ''; $('#q-help').hidden = !Q.help;
+  const u = a.unit || 'mi';
+  if (Q.type === 'choice') $('#q-a').innerHTML = `<div class="choices">${Q.opts.map(([v, l]) => `<button type="button" class="choice${String(a[Q.k]) === v ? ' on' : ''}" data-v="${v}">${l}</button>`).join('')}</div>`;
+  else if (Q.type === 'date') $('#q-a').innerHTML = `<input type="date" id="q-in" class="qin" value="${esc(a.date || '')}" min="${isoDay(new Date())}">`;
+  else $('#q-a').innerHTML = `<span class="vol big"><input type="number" id="q-in" class="qin" min="0" max="200" inputmode="decimal" value="${a[Q.k] ?? ''}"><span>${u}</span></span>`;
+  if (Q.k === 'goal' && a.goal == null && A) a.goal = focusFor(A.best.d.m);
+  $('#q-next').hidden = Q.type === 'choice'; $('#q-next').textContent = i === qs.length - 1 ? 'Build my plan' : 'Next';
+  $('#q-back').style.visibility = i === 0 && !S.ans ? 'hidden' : 'visible'; $('#q-back').textContent = i === 0 ? 'Cancel' : 'Back';
+  const inp = $('#q-in'); if (inp && document.activeElement?.closest('#quiz')) inp.focus();
+}
+function quizAnswer(v) {
+  const qs = visibleQs(S.draft), Q = qs[Math.min(S.qi, qs.length - 1)];
+  if (Q.type === 'number') { const x = parseFloat(v); if (!(x >= 0 && x <= 200)) return false; S.draft[Q.k] = x; }
+  else S.draft[Q.k] = Q.k === 'days' ? +v : v;
+  if (S.qi >= visibleQs(S.draft).length - 1) { S.ans = { ...S.draft }; store.set('oval-answers', S.ans); S.quiz = false; S.wk.offset = 0; }
+  else S.qi++;
+  return true;
+}
+function seasonChart(P, cur) {
+  const W = 1100, H = 170, n = P.weeks.length, bw = W / n, mx = Math.max(...P.weeks.map(w => w.volume)) * 1.1;
+  const col = ph => ({ Base: 'var(--field)', Build: 'var(--track-soft2)', Peak: 'var(--track)', 'Easier week': 'var(--rule)', Taper: 'var(--pace)', 'Race week': 'var(--pace)' })[ph];
+  const bars = P.weeks.map((w, i) => { const h = Math.max(3, w.volume / mx * (H - 34)), x = i * bw;
+    return `<g class="sbar" data-w="${i}" data-tip="${md(new Date(w.start + 'T12:00:00'))}: ${w.phase}, ${w.volume} ${P.unit}"><rect x="${x}" y="0" width="${bw}" height="${H - 18}" fill="transparent"/><rect x="${x + bw * 0.12}" y="${H - 18 - h}" width="${bw * 0.76}" height="${h}" rx="2" fill="${col(w.phase)}"${i === cur ? ' stroke="var(--ink)" stroke-width="2"' : ''}/></g>`; }).join('');
+  const now = `<text x="${bw / 2}" y="${H - 4}" text-anchor="middle">now</text>` + (P.raceWeek ? `<text x="${W - bw / 2}" y="${H - 4}" text-anchor="end">race</text>` : '');
+  const legend = ['Base', 'Build', 'Peak', 'Easier week', 'Taper'].map(p => `<span><i style="background:${col(p)}"></i>${p}</span>`).join('');
+  return svg(W, H, bars + now) + `<div class="legend">${legend}</div>`;
+}
+function renderTraining(A) {
+  const quiz = !S.ans || S.quiz;
+  $('#quiz').hidden = !quiz; $('#plan').hidden = quiz;
+  if (quiz) { renderQuiz(A); return; }
+  const a = S.ans, P = seasonPlan({ ...a, today: new Date() }), u = a.unit, n = P.weeks.length;
+  S.wk.offset = Math.max(0, Math.min(n - 1, S.wk.offset));
+  const w = P.weeks[S.wk.offset], goal = a.goal, gl = { mile: 'mile', '5k': '5K', '10k': '10K', half: 'half marathon', marathon: 'marathon', fit: 'fitness block' }[goal];
+  $('#pl-title').textContent = P.raceWeek ? `Your ${gl} plan` : goal === 'fit' ? 'Your 12-week fitness block' : `Your 12-week ${gl} block`;
+  $('#pl-sub').textContent = P.raceWeek ? `${n} weeks to race day on ${new Date(a.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}, building from ${Math.round(Math.max(a.current, 0))} to about ${P.peak} ${u} a week.` : `Building from ${Math.round(a.current)} to about ${P.peak} ${u} a week, then hold or set a race.`;
+  $('#season').innerHTML = seasonChart(P, S.wk.offset); tip($('#season'));
+  const isRace = P.raceWeek && w.start === P.raceWeek, rd = isRace ? (new Date(a.date + 'T12:00:00').getDay() + 6) % 7 : null;
+  const race = isRace && goal !== 'fit' ? { day: rd, m: byId(goal === 'mile' ? 'mile' : goal).m, label: byId(goal === 'mile' ? 'mile' : goal).label } : null;
+  const plan = weekPlan(A.V, { volume: w.volume, unit: u, days: +a.days, level: a.level, focus: goal === 'fit' ? '5k' : goal, longCap: w.longCap, longDay: a.longDay, maxQuality: w.quality, race });
+  const mon = new Date(w.start + 'T12:00:00'), dd = i => { const d = new Date(mon); d.setDate(d.getDate() + i); return d; };
+  $('#wk-range').textContent = `Week ${S.wk.offset + 1} of ${n}, ${md(dd(0))} to ${md(dd(6))}`;
+  $('#wk-prev').disabled = S.wk.offset === 0; $('#wk-next').disabled = S.wk.offset === n - 1;
+  $('#wk-sum').innerHTML = `<b>${w.phase}</b>: ${plan.total.toFixed(0)} ${u}, about ${Math.round(plan.easyShare * 100)}% easy.`;
+  $('#wk-note').hidden = !plan.note; $('#wk-note').textContent = plan.note;
+  const acts = store.get('oval-activities', []), U = UM();
+  const actualOn = iso => acts.filter(x => x.date === iso).reduce((s, x) => s + x.m, 0) / U;
+  let done = 0, ticked = 0;
+  $('#week').innerHTML = plan.days.map((d, i) => { const iso = isoDay(dd(i)), act = actualOn(iso); if (act) { done += act; if (d.type !== 'rest') ticked++; }
+    const dist = d.dist ? `${d.type === 'race' ? d.dist.toFixed(1) : d.dist} ${u}` : '–';
+    const log = act ? `<span class="logged">Logged ${act.toFixed(1)} ${u}</span>` : d.type === 'rest' ? '' : `<button type="button" class="ghostbtn txt" data-log="${iso}" data-d="${d.dist}" data-t="${d.type}">Log</button>`;
+    return `<li class="${d.type}${act ? ' done' : ''}"><span class="d"><b>${d.day}</b><small>${md(dd(i))}</small></span>
+      <span class="s"><b><i class="k" aria-hidden="true"></i>${d.title}</b>${d.strength ? '<span class="tag">+ strength</span>' : ''}<p>${d.detail}</p></span>
+      <span class="km">${dist}</span><span class="log">${log}</span></li>`; }).join('');
+  const runs = plan.days.filter(d => d.type !== 'rest').length;
+  $('#wk-done').innerHTML = `Logged <b>${done.toFixed(1)} of ${plan.total.toFixed(0)} ${u}</b> this week, ${ticked} of ${runs} runs done.`;
+}
+
+// ------------------------------------------------------------------ log
+const TYPE_LABEL = { easy: 'Easy run', long: 'Long run', quality: 'Workout', race: 'Race', cross: 'Cross-training' };
+function renderLog() {
+  const acts = store.get('oval-activities', []).sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : y.id - x.id)), u = unitOf(), U = UM();
+  document.querySelectorAll('.lg-u').forEach(e => e.textContent = u);
+  if (!$('#lg-date').value) $('#lg-date').value = isoDay(new Date());
+  $('#lg-feel').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === S.feel));
+  const thisWk = weekKey(), monthKey = isoDay(new Date()).slice(0, 7);
+  const sum = f => acts.filter(f).reduce((s, x) => s + x.m, 0) / U;
+  const wk = sum(x => weekKey(new Date(x.date + 'T12:00:00')) === thisWk), mo = sum(x => x.date.startsWith(monthKey)), all = sum(() => true);
+  const timed = acts.filter(x => x.s && x.m), pace = timed.length ? timed.reduce((s, x) => s + x.s, 0) / (timed.reduce((s, x) => s + x.m, 0) / U) : 0;
+  $('#lg-stats').innerHTML = [[wk.toFixed(1), `${u} this week`], [mo.toFixed(1), `${u} this month`], [String(acts.length), acts.length === 1 ? 'run logged' : 'runs logged'], [pace ? fmt(pace) : '–', `average pace per ${u}`]].map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('');
+  // last 12 weeks
+  const weeks = [...Array(12)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - 7 * (11 - i)); return weekKey(d); });
+  const vols = weeks.map(k => sum(x => weekKey(new Date(x.date + 'T12:00:00')) === k)), mx = Math.max(1, ...vols) * 1.15, W = 680, H = 150, bw = W / 12;
+  $('#lg-chart').innerHTML = svg(W, H, vols.map((v, i) => { const h = v / mx * (H - 30); return `<g data-tip="Week of ${md(new Date(weeks[i] + 'T12:00:00'))}: ${v.toFixed(1)} ${u}"><rect x="${i * bw}" y="0" width="${bw}" height="${H - 18}" fill="transparent"/><rect x="${i * bw + bw * .15}" y="${H - 18 - h}" width="${bw * .7}" height="${Math.max(h, 1.5)}" rx="2" fill="${i === 11 ? 'var(--track)' : 'var(--field)'}"/>${v ? `<text x="${i * bw + bw / 2}" y="${H - 22 - h}" text-anchor="middle">${v.toFixed(0)}</text>` : ''}</g>`; }).join('') +
+    `<text x="${bw / 2}" y="${H - 4}" text-anchor="middle">${md(new Date(weeks[0] + 'T12:00:00'))}</text><text x="${W - bw / 2}" y="${H - 4}" text-anchor="middle">this week</text>`); tip($('#lg-chart'));
+  $('#lg-empty').hidden = acts.length > 0;
+  $('#lg-list').innerHTML = acts.slice(0, 60).map(x => { const d = x.m / U;
+    return `<li><span class="rd"><b>${new Date(x.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</b><small>${TYPE_LABEL[x.type] || x.type}</small></span>
+      <span class="rn">${x.notes ? esc(x.notes) : ''}${x.feel ? `<small>Felt ${x.feel}</small>` : ''}</span>
+      <span class="rv"><b>${d.toFixed(1)} ${u}</b>${x.s ? `<small>${fmt(x.s)}${d ? `, ${fmt(x.s / d)}/${u}` : ''}</small>` : ''}</span>
+      <button type="button" class="rm" data-del="${x.id}" aria-label="Delete this run">&times;</button></li>`; }).join('');
 }
 
 const lower = l => (/^(Half marathon|Marathon|Mile)$/.test(l) ? l.toLowerCase() : l);
@@ -433,7 +511,7 @@ function selectSub(btn) {
   bar.querySelectorAll('[role=tab]').forEach(b => { const on = b === btn; b.setAttribute('aria-selected', on); const p = $('#' + b.dataset.sub); if (p) p.hidden = !on; });
 }
 function showTab(id, focus = false) {
-  if (id !== 'me' && !isReady()) { id = 'me'; const inp = $('#prs input'); if (inp) inp.focus(); }
+  if (id !== 'me' && id !== 'log' && !isReady()) { id = 'me'; const inp = $('#prs input'); if (inp) inp.focus(); }
   S.tab = id;
   TABS.forEach(t => { const b = $(`#tab-${t}`), on = t === id; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; $(`#p-${t}`).hidden = !on; });
   if (focus) $(`#tab-${id}`).focus();
@@ -494,9 +572,10 @@ function update() {
   const ready = !!A && S.submitted;
   document.body.dataset.state = ready ? 'ready' : 'empty';
   $('#verdict').hidden = $('#me-more').hidden = $('#vd').hidden = !ready;
-  TABS.forEach(t => { if (t !== 'me') $(`#tab-${t}`).setAttribute('aria-disabled', !ready); });
+  TABS.forEach(t => { if (t !== 'me' && t !== 'log') $(`#tab-${t}`).setAttribute('aria-disabled', !ready); });
+  renderLog();
   if (!ready) { if (S.tab !== 'me') showTab('me'); return; }
-  renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderRacePlan(A); renderWeek(A); renderData(A);
+  renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderRacePlan(A); renderTraining(A); renderData(A);
   const key = `${A.best.d.id}:${A.best.s}:${S.sex}:${S.ghostDist}:${JSON.stringify(S.friends)}`;
   if (key !== lastKey) { lastKey = key; setupGhost(A); }
 }
@@ -521,15 +600,27 @@ function wire() {
     err.textContent = ''; S.friends.push({ name, d: d.id, t }); saveFriends(S.friends); $('#gh-fname').value = $('#gh-ftime').value = ''; update(); };
   $('#gh-friends').onclick = e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.friends.splice(+b.dataset.rm, 1); saveFriends(S.friends); update(); };
   document.querySelectorAll('.subtabs').forEach(bar => bar.onclick = e => { const b = e.target.closest('[role=tab]'); if (b) selectSub(b); });
-  document.querySelectorAll('#wkform [data-wk]').forEach(g => g.onclick = e => { const b = e.target.closest('button'); if (!b) return; S.wk[g.dataset.wk] = b.dataset.v; update(); });
-  $('#wk-vol').oninput = e => { S.wk.volume = Math.max(5, Math.min(150, +e.target.value || 0)); update(); };
-  $('#wk-days').onchange = e => { S.wk.days = +e.target.value; update(); };
-  $('#wk-focus').onchange = e => { S.wk.focus = e.target.value; update(); };
   $('#wk-prev').onclick = () => { S.wk.offset--; update(); };
   $('#wk-next').onclick = () => { S.wk.offset++; update(); };
-  $('#wk-clear').onclick = () => { try { localStorage.removeItem(logKey()); } catch {} update(); };
-  $('#week').onchange = e => { const li = e.target.closest('li'); if (!li) return; const L = readLog(), i = +li.dataset.i; L[i] = L[i] || {};
-    if (e.target.type === 'checkbox') L[i].done = e.target.checked; else L[i].dist = e.target.value; writeLog(L); update(); };
+  $('#season').onclick = e => { const g = e.target.closest('[data-w]'); if (g) { S.wk.offset = +g.dataset.w; update(); } };
+  $('#pl-edit').onclick = () => { S.draft = { ...S.ans }; S.qi = 0; S.quiz = true; update(); };
+  $('#q-a').onclick = e => { const b = e.target.closest('.choice'); if (b && quizAnswer(b.dataset.v)) update(); };
+  $('#q-form').onsubmit = e => { e.preventDefault(); const qs = visibleQs(S.draft), Q = qs[Math.min(S.qi, qs.length - 1)], inp = $('#q-in');
+    if (Q.type === 'date') { S.draft.date = inp.value; if (S.qi >= qs.length - 1) quizAnswer(inp.value); else S.qi++; update(); return; }
+    if (inp && quizAnswer(inp.value)) update(); else if (inp) inp.focus(); };
+  $('#q-back').onclick = () => { if (S.qi === 0) { S.quiz = false; } else S.qi--; update(); };
+  $('#week').onclick = e => { const b = e.target.closest('[data-log]'); if (!b) return;
+    $('#lg-date').value = b.dataset.log; $('#lg-dist').value = b.dataset.d || ''; $('#lg-type').value = ['long', 'quality', 'race'].includes(b.dataset.t) ? b.dataset.t : 'easy';
+    showTab('log'); scrollTo({ top: 0 }); $('#lg-dist').focus(); };
+  $('#lg-feel').onclick = e => { const b = e.target.closest('button'); if (b) { S.feel = S.feel === b.dataset.v ? null : b.dataset.v; renderLog(); } };
+  $('#logform').onsubmit = e => { e.preventDefault(); const err = $('#lg-err'), date = $('#lg-date').value, dist = parseFloat($('#lg-dist').value), tRaw = $('#lg-time').value.trim(), t = tRaw ? parseTime(tRaw) : 0, type = $('#lg-type').value;
+    if (!date) { err.textContent = 'Pick a date.'; return; }
+    if (!(dist > 0) && type !== 'cross') { err.textContent = 'Enter how far you ran.'; $('#lg-dist').focus(); return; }
+    if (tRaw && !(t > 0)) { err.textContent = 'Time looks off. Use h:mm:ss or mm:ss.'; $('#lg-time').focus(); return; }
+    err.textContent = '';
+    const acts = store.get('oval-activities', []); acts.push({ id: Date.now(), date, type, m: (dist || 0) * UM(), s: t || 0, feel: S.feel, notes: $('#lg-notes').value.trim() }); store.set('oval-activities', acts);
+    $('#lg-dist').value = $('#lg-time').value = $('#lg-notes').value = ''; S.feel = null; update(); renderLog(); };
+  $('#lg-list').onclick = e => { const b = e.target.closest('[data-del]'); if (!b) return; store.set('oval-activities', store.get('oval-activities', []).filter(x => x.id !== +b.dataset.del)); update(); renderLog(); };
   $('#routines').innerHTML = Object.values(ROUTINES).map(r => `<section class="routine"><h3>${r.title}</h3><p class="t">${r.time}</p><ol>${r.items.map(([a, b]) => `<li><span>${a}</span><span>${b}</span></li>`).join('')}</ol></section>`).join('');
   $('#play').onclick = play;
   $('#unitseg').querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', x.dataset.unit === S.unit));
@@ -557,6 +648,6 @@ function wire() {
 fetch('races.json').then(r => r.json()).then(data => {
   D = data;
   if (!fromHash()) { S.prs = [['5k', '']]; S.sex = 'all'; }
-  S.friends = loadFriends();
+  S.friends = loadFriends(); S.ans = store.get('oval-answers', null); S.draft = S.ans ? { ...S.ans } : {}; S.qi = 0; S.quiz = false; S.feel = null;
   wire(); renderBib(); showTab(S.tab); update();
 }).catch(() => { $('#v-head').textContent = 'Could not load race data.'; });

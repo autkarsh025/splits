@@ -1,13 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { weekPlan, weekKey } from '../web/training.js';
+import { weekPlan, weekKey, seasonPlan } from '../web/training.js';
 
 const near = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} vs ${b} (±${tol})`);
 
 test('the week adds up to the volume asked for', () => {
   for (const days of [4, 5, 6, 7]) {
     const p = weekPlan(50, { volume: 30, days, level: 'regular' });
-    near(p.total, 30, 1.5, `${days} days`);
+    near(p.total, 30, 1, `${days} days`);
+    assert.ok(p.days.every(d => Number.isInteger(d.dist)), 'whole numbers');
     assert.equal(p.days.length, 7);
     assert.equal(p.days.filter(d => d.type !== 'rest').length, days);
   }
@@ -43,4 +44,25 @@ test('weekKey returns the Monday', () => {
   assert.equal(weekKey(new Date(2026, 10, 26)), '2026-11-23');  // Thursday 26 Nov 2026
   assert.equal(weekKey(new Date(2026, 10, 23)), '2026-11-23');
   assert.equal(weekKey(new Date(2026, 10, 29)), '2026-11-23');  // Sunday
+});
+
+test('a season builds, eases every fourth week, and tapers into race week', () => {
+  const S = seasonPlan({ goal: 'half', date: '2027-03-14', current: 20, longest: 8, level: 'regular', today: new Date(2026, 10, 26) });
+  const w = S.weeks;
+  assert.equal(w[0].start, '2026-11-23'); assert.equal(w[w.length - 1].start, S.raceWeek); assert.equal(w[w.length - 1].phase, 'Race week');
+  assert.equal(w[w.length - 2].phase, 'Taper'); assert.equal(w[3].phase, 'Easier week');
+  assert.ok(w[3].volume < w[2].volume);
+  const peak = Math.max(...w.map(x => x.volume));
+  assert.ok(w[w.length - 1].volume <= peak * 0.6, 'race week cut by at least 40%');
+  for (let i = 1; i < w.length; i++) assert.ok(w[i].longCap <= Math.max(...w.slice(Math.max(0, i - 4), i).map(x => x.longCap)) * 1.1 + 1e-9, 'long run at most 10% over the past month');
+});
+
+test('no race date gives a 12-week block; an injury starts lower', () => {
+  assert.equal(seasonPlan({ goal: 'fit', current: 10 }).weeks.length, 12);
+  assert.ok(seasonPlan({ current: 20, injury: 'yes' }).weeks[0].volume < seasonPlan({ current: 20 }).weeks[0].volume);
+});
+
+test('race week puts the race on its day', () => {
+  const p = weekPlan(50, { volume: 15, days: 5, race: { day: 6, m: 21097.5, label: 'Half marathon' } });
+  assert.equal(p.days[6].type, 'race'); assert.equal(p.days[5].type, 'rest');
 });

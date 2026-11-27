@@ -24,6 +24,7 @@
       <button role="tab" id="tab-ghost" aria-controls="p-ghost" aria-selected="false" tabindex="-1">Ghost race</button>
       <button role="tab" id="tab-plan" aria-controls="p-plan" aria-selected="false" tabindex="-1">Race plan</button>
       <button role="tab" id="tab-train" aria-controls="p-train" aria-selected="false" tabindex="-1">Training</button>
+      <button role="tab" id="tab-log" aria-controls="p-log" aria-selected="false" tabindex="-1">Log</button>
       <button role="tab" id="tab-data" aria-controls="p-data" aria-selected="false" tabindex="-1">The data</button>
     </nav>
     <div class="util">
@@ -212,7 +213,7 @@
     <div class="in">
       <h2>Training</h2>
       <div class="subtabs" role="tablist" aria-label="Training">
-        <button role="tab" aria-selected="true" data-sub="tr-week">This week</button>
+        <button role="tab" aria-selected="true" data-sub="tr-week">Your plan</button>
         <button role="tab" aria-selected="false" data-sub="tr-stretch">Stretches and strength</button>
         <button role="tab" aria-selected="false" data-sub="tr-paces">Paces</button>
         <button role="tab" aria-selected="false" data-sub="tr-goal">Goal finder</button>
@@ -221,18 +222,23 @@
       </div>
 
       <div class="subpanel" id="tr-week" role="tabpanel">
-        <form class="wkform" id="wkform" autocomplete="off" aria-label="Weekly plan settings">
-          <label class="field">Weekly volume<span class="vol"><input id="wk-vol" type="number" min="5" max="150" value="25" inputmode="numeric"><span id="wk-unit">mi</span></span></label>
-          <label class="field">Days running<select id="wk-days"><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option></select></label>
-          <fieldset class="field"><legend>Experience</legend><div class="seg" data-wk="level"><button type="button" data-v="new">New</button><button type="button" data-v="regular">Regular</button><button type="button" data-v="experienced">Experienced</button></div></fieldset>
-          <label class="field">Training for<select id="wk-focus"><option value="mile">Mile</option><option value="5k">5K</option><option value="10k">10K</option><option value="half">Half marathon</option><option value="marathon">Marathon</option></select></label>
-          <fieldset class="field"><legend>Units</legend><div class="seg" data-wk="unit"><button type="button" data-v="mi">Miles</button><button type="button" data-v="km">Km</button></div></fieldset>
-        </form>
-        <div class="wkhead"><p id="wk-sum"></p><div class="wknav"><button type="button" class="ghostbtn" id="wk-prev" aria-label="Previous week">&lsaquo;</button><span id="wk-range"></span><button type="button" class="ghostbtn" id="wk-next" aria-label="Next week">&rsaquo;</button></div></div>
-        <p class="note" id="wk-note" hidden></p>
-        <ol class="week" id="week"></ol>
-        <div class="wkfoot"><span id="wk-done"></span><button type="button" class="linkbtn quiet" id="wk-clear">Clear this week&rsquo;s log</button></div>
-        <p class="fine">Built on published coaching rules: about 80% easy running with one or two hard sessions (Seiler), long runs at most 25 to 30% of the week, and per-session limits for threshold, interval and fast work (Daniels). Your log is saved in this browser only. Next week, add little and keep your long run within about 10% of your longest run in the past month.</p>
+        <div class="quiz" id="quiz" hidden>
+          <p class="qstep" id="q-step"></p>
+          <h3 class="qq" id="q-q"></h3>
+          <p class="qhelp" id="q-help"></p>
+          <form id="q-form" autocomplete="off"><div class="qa" id="q-a"></div>
+            <div class="qnav"><button type="button" class="linkbtn quiet" id="q-back">Back</button><button type="submit" class="btn" id="q-next">Next</button></div>
+          </form>
+        </div>
+        <div id="plan" hidden>
+          <div class="planhead"><div><h3 id="pl-title"></h3><p class="sub" id="pl-sub"></p></div><button type="button" class="ghostbtn txt" id="pl-edit">Change answers</button></div>
+          <div class="season" id="season" role="group" aria-label="Weekly volume for the whole plan"></div>
+          <div class="wkhead"><p id="wk-sum"></p><div class="wknav"><button type="button" class="ghostbtn" id="wk-prev" aria-label="Previous week">&lsaquo;</button><span id="wk-range"></span><button type="button" class="ghostbtn" id="wk-next" aria-label="Next week">&rsaquo;</button></div></div>
+          <p class="note" id="wk-note" hidden></p>
+          <ol class="week" id="week"></ol>
+          <div class="wkfoot"><span id="wk-done"></span><button type="button" class="linkbtn" data-go="log">Open your log</button></div>
+          <p class="fine">Built on published coaching research: about 80% easy running with one or two hard sessions (Seiler); long runs at most 25 to 30% of the week and per-session limits for hard work (Daniels); long runs no more than about 10% over your longest in the past month (Frandsen); and a two-week taper that cuts volume about 40 to 55% but keeps the hard sessions (Bosquet et al. 2007). Runs you add in the Log tab tick off the plan.</p>
+        </div>
       </div>
 
       <div class="subpanel" id="tr-stretch" role="tabpanel" hidden>
@@ -284,6 +290,35 @@
   </section>
 </div>
 
+<!-- ============================================================ log -->
+<div class="page" id="p-log" role="tabpanel" aria-labelledby="tab-log" hidden>
+  <section class="sec first">
+    <div class="in loglayout">
+      <form class="logform" id="logform" autocomplete="off" aria-label="Log a run">
+        <h2>Log a run</h2>
+        <label class="field">Date<input id="lg-date" type="date" required></label>
+        <label class="field">Type<select id="lg-type"><option value="easy">Easy run</option><option value="long">Long run</option><option value="quality">Workout</option><option value="race">Race</option><option value="cross">Cross-training</option></select></label>
+        <div class="pair">
+          <label class="field">Distance<span class="vol"><input id="lg-dist" type="number" step="0.1" min="0" inputmode="decimal"><span class="lg-u">mi</span></span></label>
+          <label class="field"><span>Time <span class="opt">(optional)</span></span><input id="lg-time" placeholder="h:mm:ss" inputmode="numeric"></label>
+        </div>
+        <fieldset class="field"><legend>How did it feel?</legend><div class="seg" id="lg-feel"><button type="button" data-v="great">Great</button><button type="button" data-v="good">Good</button><button type="button" data-v="ok">OK</button><button type="button" data-v="tough">Tough</button><button type="button" data-v="pain">Pain</button></div></fieldset>
+        <label class="field"><span>Notes <span class="opt">(optional)</span></span><input id="lg-notes" maxlength="140" placeholder="Route, shoes, how the workout went"></label>
+        <div class="gorow"><button type="submit" class="btn">Save run</button><span class="goerr" id="lg-err" role="alert"></span></div>
+      </form>
+      <div class="logout">
+        <div class="logstats" id="lg-stats"></div>
+        <h3>Last 12 weeks</h3>
+        <div class="chart" id="lg-chart"></div>
+        <h3>Your runs</h3>
+        <p class="sub" id="lg-empty">No runs yet. Log your first one and it will show up here and tick off your training plan.</p>
+        <ol class="runs" id="lg-list"></ol>
+        <p class="fine">Saved in this browser only. Nothing is sent anywhere.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
 <!-- ============================================================ data -->
 <div class="page" id="p-data" role="tabpanel" aria-labelledby="tab-data" hidden>
   <section class="sec first">
@@ -319,7 +354,7 @@
 </main>
 
 <div class="band" id="band" aria-hidden="true"></div>
-<footer class="foot"><div class="in"><span>Oval</span><span>Data refreshed monthly from open race results. <a href="/">utkarshagarwal.dev</a></span></div></footer>
+<footer class="foot"><div class="in"><span>Oval</span><span>&copy; 2024&ndash;2026 Utkarsh Agarwal. Data refreshed monthly from open race results. <a href="/">utkarshagarwal.dev</a></span></div></footer>
 <script type="module" src="app.js"></script>
 </body>
 </html>

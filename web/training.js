@@ -26,20 +26,22 @@ const FOCUS = { mile: ['R', 'T'], '5k': ['I', 'T'], '10k': ['I', 'T'], half: ['T
  * @param o { volume (in unit), unit 'mi'|'km', days 3..7, level 'new'|'regular'|'experienced', focus key of FOCUS }
  * @returns { days: [...], total, easyShare, unit }
  */
-export function weekPlan(V, { volume = 25, unit = 'mi', days = 5, level = 'regular', focus = '5k' } = {}) {
+export function weekPlan(V, { volume = 25, unit = 'mi', days = 5, level = 'regular', focus = '5k', longCap = Infinity, longDay = 'sat', maxQuality = 2, race = null } = {}) {
   const U = unit === 'km' ? KM : MI, ul = unit === 'km' ? 'km' : 'mi';
   const P = Object.fromEntries(trainingPaces(V).map(p => [p.id, p]));
   const secPerM = { E: (P.E.lo + P.E.hi) / 2 / KM, M: P.M.lo / KM, T: P.T.lo / KM, I: P.I.lo / KM, R: P.R.lo / KM };
   const pace = id => `${fmt(id === 'E' ? P.E.lo / KM * U : secPerM[id] * U)}${id === 'E' ? '–' + fmt(P.E.hi / KM * U) : ''}/${ul}`;
   const volM = Math.max(5, volume) * U, weeklyMiles = volM / MI;
-  const tpl = TEMPLATES[Math.min(7, Math.max(3, days))].slice();
+  let tpl = TEMPLATES[Math.min(7, Math.max(3, days))].slice();
+  if (longDay === 'sun') tpl = [tpl[6], ...tpl.slice(0, 6)];
   const [f1, f2] = FOCUS[focus] || FOCUS['5k'];
-  const q = { Q1: level === 'new' ? 'F' : f1, Q2: level === 'experienced' ? f2 : null };
+  const q = { Q1: maxQuality < 1 ? null : level === 'new' ? 'F' : f1, Q2: level === 'experienced' && maxQuality >= 2 ? f2 : null };
+  if (!q.Q1) tpl.forEach((t, i) => { if (t === 'Q1') tpl[i] = 'S'; });
   if (!q.Q2) tpl.forEach((t, i) => { if (t === 'Q2') tpl[i] = 'S'; });
 
   // long run
   const longShare = weeklyMiles < 40 ? 0.3 : 0.25;
-  const longM = Math.min(volM * longShare, 150 * 60 / secPerM.E);
+  const longM = Math.min(volM * longShare, 150 * 60 / secPerM.E, longCap * U);
   const wucd = Math.min(3 * KM, volM * 0.08);  // warm-up + cool-down, about 1.5 km each
 
   const session = type => {
@@ -73,6 +75,13 @@ export function weekPlan(V, { volume = 25, unit = 'mi', days = 5, level = 'regul
     return { type: t === 'S' ? 'strides' : 'easy', title: t === 'S' ? 'Easy + strides' : 'Easy', dist: 0, detail: t === 'S' ? `Easy pace (${pace('E')}), then 6 × 20 s strides: smooth, fast, full recovery.` : `Easy pace (${pace('E')}). Conversational: you could talk in full sentences.` };
   });
 
+  if (race) {
+    const i = race.day;
+    plan[i] = { type: 'race', title: `Race day: ${race.label}`, dist: race.m, detail: 'Warm up, start controlled and follow your race plan. Then celebrate.' };
+    if (i > 0) plan[i - 1] = { type: 'rest', title: 'Rest', dist: 0, detail: 'Rest, or a 15-minute jog with a few strides. Lay out your kit tonight.' };
+    for (let j = i + 1; j < 7; j++) plan[j] = { type: 'rest', title: 'Recovery', dist: 0, detail: 'Rest or an easy walk. Recover before running hard again.' };
+    plan.forEach((d, j) => { if (j < i - 1 && d.type === 'long') plan[j] = { type: 'easy', title: 'Easy', dist: 0, detail: `Easy pace (${pace('E')}). Keep it short and relaxed.` }; });
+  }
   // fill the rest of the week with easy running, at least 30 minutes each where possible
   const easy = plan.filter(d => d.type === 'easy' || d.type === 'strides');
   const used = plan.reduce((s, d) => s + d.dist, 0);
@@ -86,13 +95,21 @@ export function weekPlan(V, { volume = 25, unit = 'mi', days = 5, level = 'regul
   const strengthDays = (hard.length >= 2 ? hard : [...hard, plan.findIndex(d => d.type === 'strides')]).filter(i => i >= 0).slice(0, 2);
   strengthDays.forEach(i => { plan[i].strength = true; });
 
+  // whole numbers: round every day, then put any rounding difference on the longest easy day
+  const target = Math.round(plan.reduce((s, d) => s + d.dist, 0) / U);
+  plan.forEach(d => { if (d.type !== 'race') d.dist = (d.type === 'long' ? Math.floor(d.dist / U + 1e-9) : Math.round(d.dist / U)) * U; });
+  const diff = target - Math.round(plan.reduce((s, d) => s + d.dist, 0) / U);
+  const fix = plan.filter(d => d.type === 'easy' || d.type === 'strides').sort((a, b) => b.dist - a.dist)[0];
+  if (fix && diff) fix.dist = Math.max(U, fix.dist + diff * U);
+  plan.forEach(d => { if (d.type !== 'rest' && d.type !== 'race' && d.dist < U) d.dist = U; });
   const total = plan.reduce((s, d) => s + d.dist, 0);
   const hardWork = plan.reduce((s, d) => s + (d.work || 0), 0);
   const short = volM - total > volM * 0.04;
   return {
-    note: short ? `With ${days} running days, easy runs are capped below your long run, so this week comes to ${(total / U).toFixed(1)} ${ul}. Add a day to reach ${volume} ${ul} safely.` : '',
+    note: short && !race ? `With ${days} running days, easy runs are capped below your long run, so this week comes to ${Math.round(total / U)} ${ul}. Add a day to reach ${volume} ${ul} safely.` : '',
     unit: ul,
     days: plan.map((d, i) => ({ day: DAYS[i], ...d, dist: d.dist / U })),
+    long: longM / U,
     total: total / U,
     easyShare: 1 - hardWork / total,
   };
@@ -117,4 +134,48 @@ export function weekKey(d = new Date()) {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
   return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+}
+
+/** Peak weekly volume to build toward, in miles, by goal and experience. */
+const PEAK = { mile: [18, 28, 40], '5k': [18, 28, 40], '10k': [20, 30, 45], half: [25, 35, 50], marathon: [30, 42, 60], fit: [15, 22, 30] };
+const LEVELS = ['new', 'regular', 'experienced'];
+const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return weekKey(d); };
+
+/**
+ * A season from this week to race week.
+ * Volume grows about 8% a week with an easier week every fourth, the long run grows at most 10% a week
+ * over the longest recent run (Frandsen), and the last two weeks taper by about 30% then 55%
+ * while keeping the hard sessions (Bosquet et al. 2007: cut volume 41-60%, keep intensity and frequency).
+ */
+export function seasonPlan({ goal = '5k', date = '', unit = 'mi', current = 15, longest = 5, level = 'regular', injury = 'no', today = new Date() } = {}) {
+  const k = unit === 'km' ? 1 / 1.609344 : 1;  // answers in the chosen unit, the table is in miles
+  const start = weekKey(today);
+  let n = 12, raceWeek = null;
+  if (date && goal !== 'fit') {
+    raceWeek = weekKey(new Date(date + 'T12:00:00'));
+    n = Math.round((new Date(raceWeek) - new Date(start)) / (7 * 864e5)) + 1;
+    if (n < 1) { raceWeek = null; n = 12; }
+  }
+  n = Math.min(30, Math.max(1, n));
+  let v0 = Math.max(unit === 'km' ? 8 : 5, current * (injury === 'yes' ? 0.8 : 1));
+  const peak = Math.max(v0, Math.min(PEAK[goal][Math.max(0, LEVELS.indexOf(level))] / k, v0 * 1.6));
+  const taper = raceWeek ? (n >= 4 ? 2 : n >= 2 ? 1 : 0) : 0;
+  let long = Math.max(longest || v0 * 0.3, unit === 'km' ? 3 : 2);
+  const weeks = []; let v = v0;
+  for (let w = 0; w < n; w++) {
+    const fromEnd = n - 1 - w, build = n - taper;
+    let phase, vol, cap;
+    if (fromEnd < taper) {
+      phase = fromEnd === 0 && raceWeek ? 'Race week' : 'Taper';
+      vol = peak * (fromEnd === 0 ? 0.45 : 0.7); cap = long * (fromEnd === 0 ? 0.5 : 0.75);
+    } else if (w > 0 && w % 4 === 3) {
+      phase = 'Easier week'; vol = v * 0.8; cap = long * 0.85;
+    } else {
+      if (w > 0) { v = Math.min(peak, v * 1.08); long = long * 1.1; }
+      vol = v; cap = long;
+      phase = w < Math.max(1, Math.round(build * 0.4)) ? 'Base' : build - w <= 3 ? 'Peak' : 'Build';
+    }
+    weeks.push({ start: addDays(start, 7 * w), phase, volume: Math.round(vol), longCap: cap, quality: phase === 'Base' ? 1 : 2 });
+  }
+  return { weeks, raceWeek, peak: Math.round(peak), unit };
 }
