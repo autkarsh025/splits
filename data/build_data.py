@@ -113,6 +113,34 @@ def nrcd_events() -> dict:
     return tables
 
 
+EVENT_M = {"800m": 800, "1500m": 1500, "mile": 1609.344, "1 mile": 1609.344, "3000m": 3000, "5000m": 5000,
+           "10000m": 10000, "5k": 5000, "6k": 6000, "8k": 8000, "10k": 10000}
+
+
+def college(tables: dict) -> dict:
+    """Best time per athlete per event (individual results only), quantiles by gender."""
+    j = next(v for k, v in tables.items() if k.endswith("joined.csv"))
+    r = next(v for k, v in tables.items() if k.endswith("result.csv"))
+    solo = set(r.loc[r["athlete_id_2"].isna(), "result_id"])
+    j = j[j["result_id"].isin(solo)].copy()
+    ev = j["event_name"].astype(str).str.strip().str.lower()
+    print("[nrcd] event names:", sorted(ev.unique())[:60])
+    j["m"] = ev.map(EVENT_M)
+    j["t"] = to_seconds(j["result_time"].astype(str))
+    j["sport"] = j["sport_name"].astype(str)
+    j = j.dropna(subset=["m", "t", "athlete_id"])
+    j = j[j["t"] > 60]
+    out = {}
+    for (sport, m, g), grp in j.groupby(["sport", "m", "gender"]):
+        best = grp.groupby("athlete_id")["t"].min()
+        if len(best) < 150:
+            continue
+        key = f"{'xc' if 'cross' in sport.lower() else 'track'}:{int(round(m))}"
+        out.setdefault(key, {})[g] = {"n": int(len(best)), "q": [round(float(v), 2) for v in np.quantile(best.values, np.linspace(0, 1, 201))]}
+    print("[nrcd] events kept:", {k: {g: v["n"] for g, v in d.items()} for k, d in out.items()})
+    return out
+
+
 def main() -> None:
     frames = []
     for name, (url, kind) in SOURCES.items():
@@ -162,6 +190,16 @@ def main() -> None:
             grp = a[(a.age >= lo) & (a.age < lo + 5)]
             if len(grp) > 2000:
                 out["age"].append([lo, int(grp.t.median()), int(len(grp))])
+    try:
+        out["college"] = college(nrcd_events())
+        out["sources"].append("National Running Club Database v2.0.0, Zenodo, CC BY 4.0")
+    except Exception as e:
+        print(f"[nrcd] skipped: {e}", file=sys.stderr)
+        out["college"] = {}
+    names = {"Nyc": "New York City", "Marinecorps": "Marine Corps", "La": "Los Angeles", "Twin_Cities": "Twin Cities",
+             "Grandmas": "Grandma's", "California_International": "California International"}
+    for r_ in out["races"]:
+        r_["name"] = names.get(r_["name"], r_["name"])
     OUT.write_text(json.dumps(out, separators=(",", ":")))
     print(f"wrote {OUT} ({OUT.stat().st_size / 1e3:.0f} KB): {out['n']:,} finishes, {len(races)} races")
 
