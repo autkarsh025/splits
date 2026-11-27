@@ -139,7 +139,17 @@
   <section class="sec first" id="ghost">
     <div class="in">
       <h2>Ghost race</h2>
-      <p class="sub">Your best race, run at even pace on a 400 m track against the world record and the marathon field. Pick real time to feel the actual pace, or speed it up.</p>
+      <p class="sub">Pick a distance and race the world record, real college runners and the marathon field at even pace on a 400 m track. Add friends to race them too.</p>
+      <div class="ghctl">
+        <label class="field">Distance<select id="gh-dist"></select></label>
+        <form class="friendform" id="gh-add" autocomplete="off" aria-label="Add a friend">
+          <label class="field">Friend&rsquo;s name<input id="gh-fname" maxlength="20" placeholder="Name"></label>
+          <label class="field"><span id="gh-flabel">Friend&rsquo;s time</span><input id="gh-ftime" inputmode="numeric" placeholder="m:ss"></label>
+          <button type="submit" class="btn ghostadd">Add friend</button>
+        </form>
+      </div>
+      <p class="goerr" id="gh-err" role="alert"></p>
+      <ul class="friends" id="gh-friends"></ul>
       <div class="stad-grid">
         <div class="oval"><canvas id="track" aria-label="Animated race on a 400 m track"></canvas></div>
         <div class="board">

@@ -23,7 +23,7 @@ const PRESETS = {
 };
 
 let D = null;  // race data
-const S = { prs: [], sex: 'men', age: '', unit: 'mi', planUnit: 'mi', planDist: null, planTime: '', course: 'flat', bold: 'real', pacing: 'negative', field: 'all', tab: 'me', submitted: false, wk: { volume: 25, days: 5, level: 'regular', focus: null, unit: 'mi', offset: 0 } };
+const S = { prs: [], sex: 'men', age: '', unit: 'mi', planUnit: 'mi', planDist: null, planTime: '', course: 'flat', bold: 'real', pacing: 'negative', field: 'all', tab: 'me', submitted: false, ghostDist: null, friends: [], wk: { volume: 25, days: 5, level: 'regular', focus: null, unit: 'mi', offset: 0 } };
 const TABS = ['me', 'rank', 'ghost', 'plan', 'train', 'data'];
 
 // ------------------------------------------------------------------ state <-> URL
@@ -44,7 +44,7 @@ function toHash() {
   if (S.tab !== 'me') q.set('t', S.tab); if (S.tab === 'plan' && S.planDist) q.set('r', S.planDist);
   history.replaceState(null, '', '#' + q.toString());
 }
-function preset(name) { S.submitted = true; const p = PRESETS[name]; S.prs = p.prs.map(x => [...x]); S.sex = p.sex; S.age = p.age; S.planTime = ''; S.planDist = null; S.wk.focus = null; $('#plan-time').value = ''; renderBib(); update(); }
+function preset(name) { S.submitted = true; const p = PRESETS[name]; S.prs = p.prs.map(x => [...x]); S.sex = p.sex; S.age = p.age; S.planTime = ''; S.planDist = null; S.ghostDist = null; S.wk.focus = null; $('#plan-time').value = ''; renderBib(); update(); }
 
 // ------------------------------------------------------------------ bib (inputs)
 function renderBib() {
@@ -145,22 +145,50 @@ function renderVerdict(A) {
 
 // ------------------------------------------------------------------ ghost race
 const G = { runners: [], dist: 5000, t: 0, T: 1, playing: false, raf: 0, last: 0, done: [] };
-function setupGhost(A) {
-  const d = A.best.d, wr = wrFor(d), conv = t => predict(vdot(42195, t), d.m);
+const FRIEND_COLORS = ['#b78cff', '#3fd0c9', '#ff7eb0'];
+const loadFriends = () => { try { return JSON.parse(localStorage.getItem('oval-friends') || '[]'); } catch { return []; } };
+const saveFriends = f => { try { localStorage.setItem('oval-friends', JSON.stringify(f)); } catch {} };
+function ghostField(A, d) {
+  const mine = A.prs.find(p => p.d.id === d.id), youT = mine ? mine.s : predict(A.V, d.m);
+  const wr = wrFor(d), conv = t => (d.id === 'marathon' ? t : predict(vdot(42195, t), d.m));
   const r = [
-    { name: 'You', note: fmt(A.best.s), t: A.best.s, c: '--you', you: true },
+    { name: 'You', note: mine ? fmt(youT, youT < 600 ? 1 : 0) : `predicted ${fmt(youT, youT < 600 ? 1 : 0)}`, t: youT, c: '--you', you: true },
     { name: 'World record', note: wr.exact ? wr.who : 'converted', t: wr.t, c: '--wr' },
-    { name: 'Top 1% marathoner', note: 'equivalent', t: d.id === 'marathon' ? timeAt(A.q, 0.01) : conv(timeAt(A.q, 0.01)), c: '--p1' },
-    { name: 'Top 10% marathoner', note: 'equivalent', t: d.id === 'marathon' ? timeAt(A.q, 0.10) : conv(timeAt(A.q, 0.10)), c: '--p10' },
-    { name: 'Median marathoner', note: 'equivalent', t: d.id === 'marathon' ? timeAt(A.q, 0.5) : conv(timeAt(A.q, 0.5)), c: '--p50' },
   ];
-  if (Math.abs(d.m - 5000) < 1) r.splice(2, 0, { name: 'CIF state champion', note: 'Conor Lott, 2025', t: CIF[0].t, c: '--cif' });
+  if (Math.abs(d.m - 5000) < 1) r.push({ name: 'CIF state champion', note: 'Conor Lott, 2025', t: CIF[0].t, c: '--cif' });
+  // friends for this event
+  S.friends.filter(f => f.d === d.id).forEach((f, i) => r.push({ name: f.name, note: 'friend', t: f.t, c: FRIEND_COLORS[i % 3], friend: true }));
+  // college club runners at this exact event, if the data has it
+  const ck = collegeKeyFor(d.m);
+  if (ck && Math.abs(keyM(ck) - d.m) < 1 && D.college[ck][gKey()]) {
+    const c = D.college[ck][gKey()], who = gKey() === 'M' ? 'men' : 'women';
+    r.push({ name: 'College club top 10%', note: `${num(c.n)} ${who}`, t: timeAt(c.q, 0.10), c: '--p10' });
+    r.push({ name: 'College club median', note: `${num(c.n)} ${who}`, t: timeAt(c.q, 0.5), c: '--p50' });
+  }
+  const mar = [
+    { name: 'Top 1% marathoner', note: d.id === 'marathon' ? 'actual' : 'equivalent', t: conv(timeAt(A.q, 0.01)), c: '--p1' },
+    { name: 'Top 10% marathoner', note: d.id === 'marathon' ? 'actual' : 'equivalent', t: conv(timeAt(A.q, 0.10)), c: '--p10' },
+    { name: 'Median marathoner', note: d.id === 'marathon' ? 'actual' : 'equivalent', t: conv(timeAt(A.q, 0.5)), c: '--p50' },
+  ];
+  // college data takes the green and pink lanes when it exists; otherwise the marathon field does
+  const hasCollege = r.some(x => x.name.startsWith('College'));
+  (hasCollege ? [mar[0]] : mar).forEach(x => r.push(x));
+  return r.slice(0, 8);
+}
+function setupGhost(A) {
+  const sel = $('#gh-dist');
+  if (!sel.children.length) sel.innerHTML = DISTANCES.map(d => `<option value="${d.id}">${d.label}</option>`).join('');
+  if (!S.ghostDist) S.ghostDist = A.best.d.id;
+  sel.value = S.ghostDist;
+  const d = byId(S.ghostDist), r = ghostField(A, d);
   G.runners = r.map((x, i) => ({ ...x, lane: i + 1 }));
-  G.dist = d.m; G.T = Math.max(...r.map(x => x.t)); setSpeeds(A.best.s); G.t = 0; G.playing = false; G.done = [];
+  G.dist = d.m; G.T = Math.max(...r.map(x => x.t)); setSpeeds(r[0].t); G.t = 0; G.playing = false; G.done = [];
+  $('#gh-flabel').textContent = `Friend's ${d.label} time`;
+  $('#gh-friends').innerHTML = S.friends.map((f, i) => `<li${f.d === d.id ? '' : ' class="other"'}><span>${esc(f.name)}</span> <span class="pl">${byId(f.d).label} ${fmt(f.t, f.t < 600 ? 1 : 0)}</span><button type="button" data-rm="${i}" aria-label="Remove ${esc(f.name)}">&times;</button></li>`).join('');
   $('#play').textContent = 'Start race'; drawTrack(); board();
 }
 // playback speed: race seconds per real second. The default makes your race take about half a minute.
-const SPEEDS = [1, 2, 5, 10, 20, 50, 100, 200];
+const SPEEDS = [1, 2, 5, 10, 20, 50, 100, 200, 500];
 function setSpeeds(youT) {
   const sel = $('#speed'), want = youT / 30, def = SPEEDS.reduce((a, b) => (Math.abs(Math.log(b / want)) < Math.abs(Math.log(a / want)) ? b : a));
   sel.innerHTML = SPEEDS.map(x => `<option value="${x}"${x === def ? ' selected' : ''}>${x === 1 ? 'Real time' : `${x}× real time`}</option>`).join('');
@@ -195,7 +223,6 @@ function drawTrack() {
   // finish line at the end of the home straight
   g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(cx + sx, cy + R * scale); g.lineTo(cx + sx, cy + outer * scale); g.stroke();
   g.fillStyle = 'rgba(255,255,255,.9)'; g.font = `600 ${Math.max(9, 10 * scale / 2.4)}px ${css('--f')}`; g.textAlign = 'center';
-  for (let i = 1; i <= lanes; i++) g.fillText(String(i), cx + sx - 12, cy + (R + (i - .5) * lw) * scale + 4);
   // runners: counterclockwise, starting at the finish line
   const pos = (s, lane) => {
     const r = (R + (lane - .5) * lw) * scale, cur = Math.PI * r / scale, segS = straight, tot = 2 * segS + 2 * cur;
@@ -205,14 +232,15 @@ function drawTrack() {
     u -= segS; if (u < cur) { const a = -Math.PI / 2 - u / cur * Math.PI; return [cx - sx + r * Math.cos(a), cy + r * Math.sin(a)]; }
     u -= cur; return [cx - sx + u * scale, cy + r];
   };
-  const sorted = [...G.runners].sort((a, b) => (a.you ? 1 : 0) - (b.you ? 1 : 0));
+  const sorted = [...G.runners].sort((a, b) => (a.you ? 1 : 0) - (b.you ? 1 : 0)), placed = [];
+  const youR = G.runners.find(r => r.you); if (youR) placed.push(pos(Math.min(G.dist, G.dist * G.t / youR.t), youR.lane));
   sorted.forEach(rn => {
     const s = Math.min(G.dist, G.dist * G.t / rn.t), [x, y] = pos(s, rn.lane);
-    g.beginPath(); g.arc(x, y, rn.you ? 7.5 : 6, 0, 7); g.fillStyle = css(rn.c); g.fill(); g.lineWidth = 1.5; g.strokeStyle = 'rgba(0,0,0,.55)'; g.stroke();
+    g.beginPath(); g.arc(x, y, rn.you ? 7.5 : 6, 0, 7); g.fillStyle = rn.c.startsWith('--') ? css(rn.c) : rn.c; g.fill(); g.lineWidth = 1.5; g.strokeStyle = 'rgba(0,0,0,.55)'; g.stroke();
     rn.xy = [x, y];
-    const you = G.runners.find(r => r.you);
-    const label = rn.you || (rn.name === 'World record' && you.xy && Math.hypot(you.xy[0] - x, you.xy[1] - y) > 28);
-    if (label) { const t = rn.you ? 'You' : 'WR'; g.font = `600 13px ${css('--f')}`; g.textAlign = 'left'; g.lineWidth = 3; g.strokeStyle = css('--paper'); g.strokeText(t, x + 10, y - 8); g.fillStyle = css('--ink'); g.fillText(t, x + 10, y - 8); }
+    const t = rn.you ? 'You' : rn.name === 'World record' ? 'WR' : rn.friend ? rn.name.slice(0, 10) : '';
+    const clear = !placed.some(([px, py]) => Math.hypot(px - x, py - y) < 30);
+    if (t && (rn.you || clear)) { placed.push([x, y]); g.font = `600 13px ${css('--f')}`; g.textAlign = 'left'; g.lineWidth = 3; g.strokeStyle = css('--paper'); g.strokeText(t, x + 10, y - 8); g.fillStyle = css('--ink'); g.fillText(t, x + 10, y - 8); }
   });
 }
 function board() {
@@ -223,7 +251,7 @@ function board() {
   $('#lap').textContent = G.dist >= 800 ? (youS >= G.dist ? 'Finished' : `Lap ${Math.min(lapsTot, Math.floor(youS / 400) + 1)} of ${lapsTot}`) : '';
   $('#order').innerHTML = list.map((r, i) => {
     const gap = r.fin ? fmt(r.t, r.t < 600 ? 1 : 0) : i === 0 || lead.s - r.s < 0.5 ? `${num(r.s)} m` : `−${num(lead.s - r.s)} m`;
-    return `<li class="${r.you ? 'you' : ''}"><span class="pos">${i + 1}</span><i class="sw" style="background:var(${r.c})"></i><span class="nm">${esc(r.name)}<small>${esc(r.note)}</small></span><span class="tm">${gap}</span></li>`;
+    return `<li class="${r.you ? 'you' : ''}"><span class="pos">${i + 1}</span><i class="sw" style="background:${r.c.startsWith('--') ? `var(${r.c})` : r.c}"></i><span class="nm">${esc(r.name)}<small>${esc(r.note)}</small></span><span class="tm">${gap}</span></li>`;
   }).join('');
 }
 
@@ -469,7 +497,7 @@ function update() {
   TABS.forEach(t => { if (t !== 'me') $(`#tab-${t}`).setAttribute('aria-disabled', !ready); });
   if (!ready) { if (S.tab !== 'me') showTab('me'); return; }
   renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderRacePlan(A); renderWeek(A); renderData(A);
-  const key = `${A.best.d.id}:${A.best.s}:${S.sex}`;
+  const key = `${A.best.d.id}:${A.best.s}:${S.sex}:${S.ghostDist}:${JSON.stringify(S.friends)}`;
   if (key !== lastKey) { lastKey = key; setupGhost(A); }
 }
 
@@ -483,6 +511,15 @@ function wire() {
     if (!analyse()) { $('#goerr').textContent = 'Enter a time first, like 18:30 or 1:45:00.'; const inp = $('#prs input'); if (inp) inp.focus(); return; }
     $('#goerr').textContent = ''; S.submitted = true; update();
     const v = $('#verdict'); if (v && innerWidth < 900) v.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  $('#gh-dist').onchange = e => { S.ghostDist = e.target.value; update(); };
+  $('#gh-add').onsubmit = e => { e.preventDefault();
+    const name = $('#gh-fname').value.trim(), t = parseTime($('#gh-ftime').value), d = byId(S.ghostDist), err = $('#gh-err');
+    if (!name) { err.textContent = 'Give your friend a name.'; $('#gh-fname').focus(); return; }
+    const v = t > 0 ? vdot(d.m, t) : 0;
+    if (!(v > 15 && v < 90)) { err.textContent = `Enter a real ${d.label} time, like ${fmt(predict(45, d.m))}.`; $('#gh-ftime').focus(); return; }
+    if (S.friends.filter(f => f.d === d.id).length >= 3) { err.textContent = 'Up to 3 friends per distance. Remove one first.'; return; }
+    err.textContent = ''; S.friends.push({ name, d: d.id, t }); saveFriends(S.friends); $('#gh-fname').value = $('#gh-ftime').value = ''; update(); };
+  $('#gh-friends').onclick = e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.friends.splice(+b.dataset.rm, 1); saveFriends(S.friends); update(); };
   document.querySelectorAll('.subtabs').forEach(bar => bar.onclick = e => { const b = e.target.closest('[role=tab]'); if (b) selectSub(b); });
   document.querySelectorAll('#wkform [data-wk]').forEach(g => g.onclick = e => { const b = e.target.closest('button'); if (!b) return; S.wk[g.dataset.wk] = b.dataset.v; update(); });
   $('#wk-vol').oninput = e => { S.wk.volume = Math.max(5, Math.min(150, +e.target.value || 0)); update(); };
@@ -520,5 +557,6 @@ function wire() {
 fetch('races.json').then(r => r.json()).then(data => {
   D = data;
   if (!fromHash()) { S.prs = [['5k', '']]; S.sex = 'all'; }
+  S.friends = loadFriends();
   wire(); renderBib(); showTab(S.tab); update();
 }).catch(() => { $('#v-head').textContent = 'Could not load race data.'; });
