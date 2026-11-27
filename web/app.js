@@ -718,11 +718,8 @@ function wire() {
   $('#goal').oninput = () => update();
   $('#conv-v').oninput = $('#conv-u').onchange = () => renderConverter();
   $('#print').onclick = () => window.print();
-  const root = document.documentElement, th = $('#theme');
-  const night = () => root.dataset.theme ? root.dataset.theme === 'night' : matchMedia('(prefers-color-scheme: dark)').matches;
-  const lab = () => { th.textContent = night() ? 'Day mode' : 'Night mode'; };
-  th.onclick = () => { root.dataset.theme = night() ? 'day' : 'night'; try { localStorage.setItem('splits-theme', root.dataset.theme); } catch {} lab(); drawTrack(); };
-  lab();
+  try { localStorage.removeItem('splits-theme'); } catch {}  // the site follows the device's light or dark setting
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => drawTrack());
   new ResizeObserver(() => drawTrack()).observe($('#track').parentElement);
   addEventListener('hashchange', () => { if (fromHash()) { renderBib(); update(); } });
 }
