@@ -209,7 +209,8 @@ table.results .pl { font-size: 13px; color: var(--mute) }
   .track::after { right: 6% }
 }
 @media (max-width: 560px) {
-  .lanes, .track::after { display: none } .hero { padding-left: max(4vw, 18px) }
+  .lanes, .track::after { display: none } .hero { padding-left: max(4vw, 18px); padding-bottom: 92px }
+  .track::before { top: auto; height: 62px; opacity: .6; background: repeating-linear-gradient(180deg, var(--lane) 0 2px, transparent 2px 15.5px) }
   .bib { padding: 20px 16px 16px }
   .led { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) } .cell:first-child { grid-column: 1 / -1; border-right: 0; border-bottom: 2px solid #222 }
   .ranks li { grid-template-columns: 72px minmax(0, 1fr) } .ranks b { font-size: 19px }

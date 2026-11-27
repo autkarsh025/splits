@@ -215,7 +215,7 @@ function board() {
   const you = G.runners.find(r => r.you), lapsTot = Math.max(1, Math.round(G.dist / 400)), youS = Math.min(G.dist, G.dist * tt / you.t);
   $('#lap').textContent = G.dist >= 800 ? (youS >= G.dist ? 'Finished' : `Lap ${Math.min(lapsTot, Math.floor(youS / 400) + 1)} of ${lapsTot}`) : '';
   $('#order').innerHTML = list.map((r, i) => {
-    const gap = r.fin ? fmt(r.t, r.t < 600 ? 1 : 0) : i === 0 ? `${num(r.s)} m` : `−${num(lead.s - r.s)} m`;
+    const gap = r.fin ? fmt(r.t, r.t < 600 ? 1 : 0) : i === 0 || lead.s - r.s < 0.5 ? `${num(r.s)} m` : `−${num(lead.s - r.s)} m`;
     return `<li class="${r.you ? 'you' : ''}"><span class="pos">${i + 1}</span><i class="sw" style="background:var(${r.c})"></i><span class="nm">${esc(r.name)}<small>${esc(r.note)}</small></span><span class="tm">${gap}</span></li>`;
   }).join('');
 }
@@ -434,7 +434,7 @@ function wire() {
   $('#po-opts').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.bold = b.dataset.bold; S.planTime = ''; $('#plan-time').value = ''; update(); };
   $('#plan-dist').onchange = e => { S.planDist = e.target.value; S.planTime = ''; $('#plan-time').value = ''; update(); };
   $('#plan-time').oninput = e => { S.planTime = e.target.value; update(); };
-  TABS.forEach((t, i) => { const b = $(`#tab-${t}`); b.onclick = () => showTab(t); b.onkeydown = e => { const k = { ArrowRight: 1, ArrowLeft: -1 }[e.key]; if (k) { e.preventDefault(); showTab(TABS[(i + k + TABS.length) % TABS.length], true); } }; });
+  TABS.forEach((t, i) => { const b = $(`#tab-${t}`); b.onclick = () => { showTab(t); const top = $('.tabs').offsetTop; if (scrollY > top) scrollTo({ top }); }; b.onkeydown = e => { const k = { ArrowRight: 1, ArrowLeft: -1 }[e.key]; if (k) { e.preventDefault(); showTab(TABS[(i + k + TABS.length) % TABS.length], true); } }; });
   $('#tempf').oninput = $('#dewf').oninput = () => update();
   $('#goal').oninput = () => update();
   $('#conv-v').oninput = $('#conv-u').onchange = () => renderConverter();
