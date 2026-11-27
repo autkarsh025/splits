@@ -9,7 +9,8 @@ Put in one or more race PRs, from 800 m to the marathon, and Splits shows:
 - **High school benchmarks**: the 2025 CIF State Cross Country champions' times
 - **A ghost race**: you against the world record and the top 1%, top 10% and median marathoners, animated on a 400 m track
 - **Your PR profile**: which PR is really your best, and whether you lean toward speed or endurance
-- **Equivalent times** at every distance (VDOT and Riegel), **training paces**, a **race plan** with even, negative or positive splits and a printable pace band, and a **heat and humidity** adjustment
+- **Race plan builder**: pick a race, course, forecast and how bold to be. Splits sets a goal from your races (leaning on the one closest in distance), then writes the plan: how to run each phase, checkpoint splits with an on-track window, warmup, gels and drinks. Prints on one page with a pace band
+- **Equivalent times** at every distance (VDOT and Riegel), **training paces**, a **goal finder** and a **pace converter**
 
 Everything recomputes as you type, and the URL holds your inputs so a result can be shared.
 
@@ -20,6 +21,7 @@ Everything recomputes as you type, and the URL holds your inputs so a result can
 | `web/model.js` | The running model: Daniels and Gilbert VDOT (oxygen cost of a pace divided by the share of VO2max sustainable for that duration), its inverse for equivalent times and training paces, Riegel's formula, percentiles from quantile tables, split plans |
 | `data/build_data.py` | Downloads the open datasets in GitHub Actions and reduces millions of results to a 60 KB file of quantile tables (`data/races.json`) |
 | `web/app.js` | The page: inputs, rankings, the ghost race (canvas), charts (SVG) |
+| `web/plan.js` | The race plan: goal time with adjustments for distance beyond your longest race, course, heat and boldness; checkpoints; phases; race-morning notes |
 | `test/` | Checks the model against Daniels' published tables, percentile math, split plans, and that the data is sane |
 
 Workflows: `data` rebuilds the distributions monthly; `site` runs the tests, builds the page and publishes it on every push.
