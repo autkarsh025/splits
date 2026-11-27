@@ -626,7 +626,7 @@ function renderRacePlan(A) {
   $('#po-phases').innerHTML = phases(d.m, goal, { unit, pacing: S.pacing }).map(p => `<li><b>${p.name[0].toUpperCase() + p.name.slice(1)}</b><p>${p.how}</p></li>`).join('');
   const C = checkpoints(d.m, goal, { unit, pacing: S.pacing });
   const BS = D.boston_splits && D.boston_splits.n ? D.boston_splits : null;
-  $('#po-cp-hint').textContent = `Check your watch at each point. A few seconds either way is fine. ${C.drift ? 'The targets run the second half about 1% faster than the first.' : 'The targets are even pace.'}${BS && d.m > 20000 ? ` Most people do the opposite: at Boston in 2013 and 2014 only ${(BS.negative * 100).toFixed(1)}% of ${num(BS.n)} finishers ran the second half faster, and the typical runner slowed by ${(BS.median_slowdown * 100).toFixed(0)}%.${(() => { const b = d.m > 40000 && (BS.bands || []).find(x => goal >= x.lo && (x.hi == null || goal < x.hi)); return b ? ` Runners finishing ${b.band} slowed by ${(b.slowdown * 100).toFixed(0)}%.` : ''; })()}` : ''}`;
+  $('#po-cp-hint').textContent = `Check your watch at each point. A few seconds either way is fine. ${C.drift ? 'The targets run the second half about 1% faster than the first.' : 'The targets are even pace.'}${BS && d.m > 20000 ? ` Most people do the opposite: at Boston in 2013 and 2014 only ${(BS.negative * 100).toFixed(1)}% of ${num(BS.n)} finishers ran the second half faster, and the typical runner slowed by ${(BS.median_slowdown * 100).toFixed(0)}%.${(() => { const b = d.m > 40000 && (BS.bands || []).find(x => goal >= x.lo && (x.hi == null || goal < x.hi)); return b ? ` Runners finishing ${b.band.replace('-', '–')} slowed by ${(b.slowdown * 100).toFixed(0)}%.` : ''; })()}` : ''}`;
   const cd = x => fmt(x, goal < 600 ? 1 : 0);
   $('#po-cp tbody').innerHTML = C.rows.map(r => `<tr${r.half ? ' class="me"' : ''}><td>${cpLabel(r, C.step, d.m, unit)}</td><td class="r t">${cd(r.cum)}</td><td class="r pl">${cd(r.lo)} to ${cd(r.hi)}</td></tr>`).join('');
   const R = raceDay(goal, d.m, G.adj.heat);
@@ -688,7 +688,7 @@ function renderData(A) {
       (yb >= 0 && yb < nb ? `<text x="${Math.min(w - 30, Math.max(30, yb * bw + bw / 2))}" y="${base - bins[yb] / mx * (base - 12) - 6}" text-anchor="middle" class="vlab" style="fill:var(--track-ink)">you</text>` : ''));
     tip(el); }
   // pacing by finish time at Boston
-  const bands = BS && BS.bands;
+  const bands = BS && BS.bands && BS.bands.map(b => ({ ...b, band: b.band.replace('-', '–') }));
   $('#pacefig').hidden = !(bands && bands.length);
   if (bands && bands.length) {
     const el = $('#bospace'), w = Math.max(320, Math.round(el.clientWidth || Math.min(1100, document.documentElement.clientWidth - 36))), H = 220, base = H - 40, bw = w / bands.length, mx = Math.max(...bands.map(b => b.slowdown)) * 1.2;
