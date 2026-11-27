@@ -449,3 +449,5 @@ body[data-state=ready] .teaser { display: none }
   .week .s p { font-size: 14px }
   .wkfoot #wk-done { flex-direction: column; align-items: stretch }
 }
+
+figure.wide { margin: 28px 0 0 } figure.wide figcaption { max-width: 60em; margin-bottom: 10px }

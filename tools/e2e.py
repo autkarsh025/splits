@@ -411,6 +411,7 @@ async def one(cfg_name, browser):
     await tab(pg, "data")
     r.check(len(await pg.query_selector_all("#facts > div")) >= 4, "data: facts row")
     r.check(len(await pg.query_selector_all(".three svg")) == 3, "data: three charts")
+    r.check(await visible(pg, "#dens svg") and "five minutes" in await text(pg, "#cap-dens"), "data: field density around you")
     await pg.click("[data-sub=dt-src]")
     r.check(len(await pg.query_selector_all("#sources li")) >= 4, "data: sources")
     await no_overflow(pg, r, "data")

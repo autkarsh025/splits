@@ -172,6 +172,19 @@ def boston() -> tuple[pd.DataFrame, dict]:
         ratio = hv.second / hv["first"]
         stats = {"n": int(len(hv)), "negative": round(float((ratio < 1).mean()), 4), "median_slowdown": round(float(ratio.median() - 1), 4),
                  "years": [2013, 2014]}
+        # the same, by finish time: do faster runners pace more evenly?
+        fin = hv["first"] + hv.second
+        edges = [0, 165, 180, 195, 210, 240, 270, 300, 1e9]
+        labels = ["under 2:45", "2:45-3:00", "3:00-3:15", "3:15-3:30", "3:30-4:00", "4:00-4:30", "4:30-5:00", "over 5:00"]
+        bands = []
+        for lo, hi, lab in zip(edges, edges[1:], labels):
+            m = (fin >= lo * 60) & (fin < hi * 60)
+            if m.sum() >= 100:
+                r = ratio[m]
+                bands.append({"band": lab, "lo": lo * 60, "hi": None if hi > 1e8 else hi * 60, "n": int(m.sum()),
+                              "slowdown": round(float(r.median() - 1), 4), "negative": round(float((r < 1).mean()), 4),
+                              "even": round(float(((r - 1).abs() < 0.03).mean()), 4)})
+        stats["bands"] = bands
     print(f"[boston] {sum(len(f) for f in frames):,} finishes")
     return (pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()), stats
 

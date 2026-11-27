@@ -626,7 +626,7 @@ function renderRacePlan(A) {
   $('#po-phases').innerHTML = phases(d.m, goal, { unit, pacing: S.pacing }).map(p => `<li><b>${p.name[0].toUpperCase() + p.name.slice(1)}</b><p>${p.how}</p></li>`).join('');
   const C = checkpoints(d.m, goal, { unit, pacing: S.pacing });
   const BS = D.boston_splits && D.boston_splits.n ? D.boston_splits : null;
-  $('#po-cp-hint').textContent = `Check your watch at each point. A few seconds either way is fine. ${C.drift ? 'The targets run the second half about 1% faster than the first.' : 'The targets are even pace.'}${BS && d.m > 20000 ? ` Most people do the opposite: at Boston in 2013 and 2014 only ${(BS.negative * 100).toFixed(1)}% of ${num(BS.n)} finishers ran the second half faster, and the typical runner slowed by ${(BS.median_slowdown * 100).toFixed(0)}%.` : ''}`;
+  $('#po-cp-hint').textContent = `Check your watch at each point. A few seconds either way is fine. ${C.drift ? 'The targets run the second half about 1% faster than the first.' : 'The targets are even pace.'}${BS && d.m > 20000 ? ` Most people do the opposite: at Boston in 2013 and 2014 only ${(BS.negative * 100).toFixed(1)}% of ${num(BS.n)} finishers ran the second half faster, and the typical runner slowed by ${(BS.median_slowdown * 100).toFixed(0)}%.${(() => { const b = d.m > 40000 && (BS.bands || []).find(x => goal >= x.lo && (x.hi == null || goal < x.hi)); return b ? ` Runners finishing ${b.band} slowed by ${(b.slowdown * 100).toFixed(0)}%.` : ''; })()}` : ''}`;
   const cd = x => fmt(x, goal < 600 ? 1 : 0);
   $('#po-cp tbody').innerHTML = C.rows.map(r => `<tr${r.half ? ' class="me"' : ''}><td>${cpLabel(r, C.step, d.m, unit)}</td><td class="r t">${cd(r.cum)}</td><td class="r pl">${cd(r.lo)} to ${cd(r.hi)}</td></tr>`).join('');
   const R = raceDay(goal, d.m, G.adj.heat);
@@ -676,6 +676,29 @@ function renderData(A) {
   if (yrs.length) {
     const y0 = yrs[0], y1 = yrs[yrs.length - 1], dm = Math.round((y1[1] - y0[1]) / 60);
     $('#cap-years').innerHTML = dm > 0 ? `<b>The typical marathoner got slower.</b> The median finish went from ${fmt(y0[1])} in ${y0[0]} to ${fmt(y1[1])} in ${y1[0]} as the fields grew.` : `<b>The typical marathoner got faster.</b> The median went from ${fmt(y0[1])} in ${y0[0]} to ${fmt(y1[1])} in ${y1[0]}.`; $('#years').innerHTML = lineChart(yrs, { xfmt: String }); tip($('#years')); }
+  // how crowded is the field around your time? 5-minute bins from the per-mille quantiles
+  { const q = D.all, N = D.n, lo = 2 * 3600, hi = 7 * 3600, step = 300, nb = (hi - lo) / step, bins = Array(nb).fill(0);
+    const F = t => { if (t <= q[0]) return 0; if (t >= q[q.length - 1]) return 1; let i = 1; while (q[i] < t) i++; return (i - 1 + (t - q[i - 1]) / ((q[i] - q[i - 1]) || 1)) / (q.length - 1); };
+    for (let b = 0; b < nb; b++) bins[b] = (F(lo + (b + 1) * step) - F(lo + b * step)) * N;
+    const you = A.marathon, yb = Math.floor((you - lo) / step), el = $('#dens'), w = Math.max(320, Math.round(el.clientWidth || Math.min(1100, document.documentElement.clientWidth - 36))), H = 220, base = H - 26, bw = w / nb, mx = Math.max(...bins);
+    const peak = bins.indexOf(mx), near = (F(you + 300) - F(you - 300)) * N, lab = b => fmt(lo + b * step);
+    $('#cap-dens').innerHTML = `<b>${yb >= 0 && yb < nb ? `About ${num(near > 2000 ? Math.round(near / 1000) * 1000 : Math.round(near / 100) * 100)} finishes landed within five minutes of your marathon equivalent (${fmt(you)}).` : `Your marathon equivalent is ${fmt(you)}.`}</b> The busiest five minutes were ${lab(peak)} to ${lab(peak + 1)}. ${(lo + (peak + 1) * step) % 1800 === 0 ? ' That is just under a round number, where lots of people aim.' : ''}`;
+    el.innerHTML = svg(w, H, `<line x1="0" x2="${w}" y1="${base}" y2="${base}" stroke="var(--rule)"/>` + bins.map((v, i) => `<g data-tip="${lab(i)} to ${lab(i + 1)}: about ${num(Math.round(v))} finishes"><rect x="${i * bw}" y="0" width="${bw}" height="${H}" fill="transparent"/><rect x="${i * bw + 0.5}" y="${base - v / mx * (base - 12)}" width="${Math.max(1, bw - 1)}" height="${v / mx * (base - 12)}" fill="${i === yb ? 'var(--track)' : 'var(--field)'}"/></g>`).join('') +
+      [2, 3, 4, 5, 6, 7].map(h => { const x = (h * 3600 - lo) / step * bw; return `<text x="${Math.min(w - 14, Math.max(14, x))}" y="${H - 6}" text-anchor="middle">${h}:00</text>`; }).join('') +
+      (yb >= 0 && yb < nb ? `<text x="${Math.min(w - 30, Math.max(30, yb * bw + bw / 2))}" y="${base - bins[yb] / mx * (base - 12) - 6}" text-anchor="middle" class="vlab" style="fill:var(--track-ink)">you</text>` : ''));
+    tip(el); }
+  // pacing by finish time at Boston
+  const bands = BS && BS.bands;
+  $('#pacefig').hidden = !(bands && bands.length);
+  if (bands && bands.length) {
+    const el = $('#bospace'), w = Math.max(320, Math.round(el.clientWidth || Math.min(1100, document.documentElement.clientWidth - 36))), H = 220, base = H - 40, bw = w / bands.length, mx = Math.max(...bands.map(b => b.slowdown)) * 1.2;
+    const mine = bands.findIndex(b => A.marathon >= b.lo && (b.hi == null || A.marathon < b.hi)), f = bands[0], l = bands[bands.length - 1];
+    $('#cap-pace').innerHTML = `<b>Faster runners pace more evenly.</b> At Boston in 2013 and 2014, finishers ${f.band} ran the second half a typical ${(f.slowdown * 100).toFixed(0)}% slower than the first; finishers ${l.band}, ${(l.slowdown * 100).toFixed(0)}% slower.${mine >= 0 ? ` In your band (${bands[mine].band}) ${(bands[mine].negative * 100).toFixed(0)}% ran a negative split.` : ''}`;
+    el.innerHTML = svg(w, H, `<line x1="0" x2="${w}" y1="${base}" y2="${base}" stroke="var(--rule)"/>` + bands.map((b, i) => { const x = i * bw + bw * .15, bwid = bw * .7, y = base - b.slowdown / mx * (base - 20);
+      return `<g data-tip="${b.band}: second half ${(b.slowdown * 100).toFixed(1)}% slower, ${(b.negative * 100).toFixed(1)}% negative split (${num(b.n)} runners)"><rect x="${i * bw}" y="0" width="${bw}" height="${H}" fill="transparent"/><rect x="${x}" y="${y}" width="${bwid}" height="${base - y}" rx="3" fill="${i === mine ? 'var(--track)' : 'var(--field)'}"/>
+        <text x="${x + bwid / 2}" y="${y - 6}" text-anchor="middle" class="vlab">+${(b.slowdown * 100).toFixed(0)}%</text><text x="${x + bwid / 2}" y="${H - 22}" text-anchor="middle">${b.band.replace('under ', '<').replace('over ', '>')}</text>${i === mine ? `<text x="${x + bwid / 2}" y="${H - 6}" text-anchor="middle" style="fill:var(--track-ink)">you</text>` : ''}</g>`; }).join(''));
+    tip(el);
+  }
   $('#sources').innerHTML = (D.sources || []).map(s => `<li>${esc(s)}</li>`).join('');
   document.querySelectorAll('[data-n=all]').forEach(e => e.textContent = num(D.n));
   document.querySelectorAll('[data-nm]').forEach(e => e.textContent = `${(D.n / 1e6).toFixed(1)}M`);
