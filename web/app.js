@@ -72,11 +72,15 @@ function analyse() {
 function collegeKeyFor(m) {
   if (!D.college) return null;
   const cands = Object.keys(D.college).map(k => ({ k, m: +k.split(':')[1], kind: k.split(':')[0] }));
-  const exact = cands.find(c => Math.abs(c.m - m) < 15 && c.kind === 'track') || cands.find(c => Math.abs(c.m - m) < 15);
-  return exact ? exact.k : null;
+  const order = { track: 0, road: 1, xc: 2 }, near = cands.filter(c => Math.abs(c.m - m) < 15)
+    .sort((x, y) => Math.abs(x.m - m) - Math.abs(y.m - m) || order[x.kind] - order[y.kind]);
+  return near.length ? near[0].k : null;
 }
 const gKey = () => (S.sex === 'women' ? 'F' : 'M');
-const collegeLabel = k => { const [kind, m] = k.split(':'); const d = DISTANCES.find(x => Math.abs(x.m - +m) < 15); return `${d ? d.label : m + ' m'} ${kind === 'xc' ? 'cross country' : kind === 'road' ? 'road' : 'track'}`; };
+const collegeLabel = k => { const [kind, m] = k.split(':'); const d = DISTANCES.find(x => Math.abs(x.m - +m) < 1); return `${d ? d.label : num(+m) + ' m'} ${kind === 'xc' ? 'cross country' : kind === 'road' ? 'road' : 'track'}`; };
+const keyM = k => +k.split(':')[1];
+// a time converted to the college event's exact distance (e.g. mile -> 1600 m) at the same VDOT
+const atKey = (k, m, s) => Math.abs(keyM(k) - m) < 1 ? s : predict(vdot(m, s), keyM(k) > 21000 ? 21097.5 : keyM(k));
 
 function wrFor(d) {
   if (WORLD_RECORDS[d.id]) return { t: WORLD_RECORDS[d.id].t, who: WORLD_RECORDS[d.id].who, exact: true };
@@ -102,7 +106,7 @@ function renderVerdict(A) {
   const ck = collegeKeyFor(b.d.m);
   if (ck && D.college[ck][gKey()]) {
     const c = D.college[ck][gKey()];
-    rows.push([pctTxt(fasterThan(c.q, b.s)), `of ${num(c.n)} college club ${gKey() === 'M' ? 'men' : 'women'}’s ${collegeLabel(ck)} PRs`, 'National Running Club Database']);
+    rows.push([pctTxt(fasterThan(c.q, atKey(ck, b.d.m, b.s))), `of ${num(c.n)} college club ${gKey() === 'M' ? 'men' : 'women'}’s ${collegeLabel(ck)} PRs`, Math.abs(keyM(ck) - b.d.m) < 1 ? 'National Running Club Database' : `Your time converted to ${num(keyM(ck))} m: ${fmt(atKey(ck, b.d.m, b.s), 1)}`]);
   } else {
     const k5 = collegeKeyFor(5000);
     if (k5 && D.college[k5][gKey()]) { const c = D.college[k5][gKey()], t5 = predict(A.V, 5000); rows.push([pctTxt(fasterThan(c.q, t5)), `of ${num(c.n)} college club ${gKey() === 'M' ? 'men' : 'women'}’s 5K PRs`, `Using your 5K equivalent, ${fmt(t5)}`]); }
@@ -186,8 +190,8 @@ function board() {
   const tt = G.t, list = G.runners.map(r => ({ ...r, s: Math.min(G.dist, G.dist * tt / r.t), fin: tt >= r.t })).sort((a, b) => (b.fin && a.fin ? a.t - b.t : b.s - a.s));
   const lead = list[0];
   $('#clock').textContent = fmt(tt, tt < 600 ? 1 : 0);
-  const you = G.runners.find(r => r.you), lapsTot = Math.ceil(G.dist / 400), youS = Math.min(G.dist, G.dist * tt / you.t);
-  $('#lap').textContent = G.dist >= 800 ? `Lap ${Math.min(lapsTot, Math.floor(youS / 400) + 1)} of ${lapsTot}` : '';
+  const you = G.runners.find(r => r.you), lapsTot = Math.max(1, Math.round(G.dist / 400)), youS = Math.min(G.dist, G.dist * tt / you.t);
+  $('#lap').textContent = G.dist >= 800 ? (youS >= G.dist ? 'Finished' : `Lap ${Math.min(lapsTot, Math.floor(youS / 400) + 1)} of ${lapsTot}`) : '';
   $('#order').innerHTML = list.map((r, i) => {
     const gap = r.fin ? fmt(r.t, r.t < 600 ? 1 : 0) : i === 0 ? `${num(r.s)} m` : `−${num(lead.s - r.s)} m`;
     return `<li class="${r.you ? 'you' : ''}"><span class="pos">${i + 1}</span><i class="sw" style="background:var(${r.c})"></i><span class="nm">${esc(r.name)}<small>${esc(r.note)}</small></span><span class="tm">${gap}</span></li>`;
@@ -255,7 +259,7 @@ function renderFields(A) {
 }
 
 function renderCollege(A) {
-  const b = A.best; let k = collegeKeyFor(b.d.m), t = b.s, note = '';
+  const b = A.best; let k = collegeKeyFor(b.d.m), t = k ? atKey(k, b.d.m, b.s) : b.s, note = k && Math.abs(keyM(k) - b.d.m) >= 1 ? ` (your ${b.d.label} converted to ${num(keyM(k))} m, ${fmt(t, 1)})` : '';
   if (!k) { k = collegeKeyFor(5000); t = predict(A.V, 5000); note = ` (your 5K equivalent, ${fmt(t)})`; }
   const box = $('#college');
   if (!k) { $('#college-sub').textContent = 'College data unavailable.'; box.innerHTML = ''; }
@@ -276,7 +280,7 @@ function renderEquiv(A) {
   const b = A.best, mine = Object.fromEntries(A.prs.map(p => [p.d.id, p]));
   $('#equiv tbody').innerHTML = DISTANCES.map(d => {
     const tv = d.id === b.d.id ? b.s : predict(A.V, d.m), tr = d.id === b.d.id ? b.s : riegel(b.d.m, b.s, d.m), ck = collegeKeyFor(d.m);
-    const col = ck && D.college[ck][gKey()] ? pctTxt(fasterThan(D.college[ck][gKey()].q, mine[d.id] ? mine[d.id].s : tv)) : '–';
+    const col = ck && D.college[ck][gKey()] ? pctTxt(fasterThan(D.college[ck][gKey()].q, atKey(ck, d.m, mine[d.id] ? mine[d.id].s : tv))) : '–';
     const me = mine[d.id], dec = tv < 300 ? 1 : 0;
     return `<tr class="${me ? 'me' : ''}"><td>${d.label}${me ? `<br><span class="pl">Your PR ${fmt(me.s)}, VDOT ${me.v.toFixed(1)}</span>` : ''}</td><td class="r t">${fmt(tv, dec)}</td><td class="r">${fmt(tr, dec)}</td><td class="r">${fmt(tv / d.m * KM)}</td><td class="r">${fmt(tv / d.m * MI)}</td><td class="r">${col}</td></tr>`;
   }).join('');
@@ -316,10 +320,16 @@ function renderPlan(A) {
 }
 
 function renderData(A) {
+  { const rs = [...D.races].sort((x, y) => x.q[100] - y.q[100]), f = rs[0], sl = rs[rs.length - 1];
+    $('#cap-races').innerHTML = `<b>The fields are not equal.</b> The median finisher at ${f.name} runs ${fmt(f.q[100])}; at ${sl.name}, ${fmt(sl.q[100])}. The same time places very differently depending on the race.`; }
   $('#racemed').innerHTML = hbars(D.races.map(r => [r.name, r.q[100], r.n]).sort((a, b) => a[1] - b[1]), { you: A.marathon < 30000 ? A.marathon : null }); tip($('#racemed'));
-  if (D.age && D.age.length) { $('#agecurve').innerHTML = lineChart(D.age.map(a => [a[0] + 2, a[1], a[2]]), { xfmt: x => `${x - 2}–${x + 2}`, mark: S.age ? [+S.age, A.marathon] : null }); tip($('#agecurve')); }
+  if (D.age && D.age.length) {
+    const fast = D.age.reduce((x, y) => (y[1] < x[1] ? y : x)), g55 = D.age.find(x => x[0] === 53) || D.age[D.age.length - 3], g70 = D.age.find(x => x[0] === 68);
+    $('#cap-age').innerHTML = `<b>The fastest age group is ${fast[0]}–${fast[0] + 4}.</b> Median ${fmt(fast[1])}; ${g55[0]}–${g55[0] + 4} year olds are ${Math.round((g55[1] - fast[1]) / 60)} minutes slower${g70 ? `, ${g70[0]}–${g70[0] + 4} year olds ${Math.round((g70[1] - fast[1]) / 60)}` : ''}.`; $('#agecurve').innerHTML = lineChart(D.age.map(a => [a[0] + 2, a[1], a[2]]), { xfmt: x => `${x - 2}–${x + 2}`, mark: S.age ? [+S.age, A.marathon] : null }); tip($('#agecurve')); }
   const yrs = (D.median_by_year || []).filter(y => y[0] <= 2019);
-  if (yrs.length) { $('#years').innerHTML = lineChart(yrs, { xfmt: String }); tip($('#years')); }
+  if (yrs.length) {
+    const y0 = yrs[0], y1 = yrs[yrs.length - 1], dm = Math.round((y1[1] - y0[1]) / 60);
+    $('#cap-years').innerHTML = dm > 0 ? `<b>The typical marathoner got slower.</b> The median finish went from ${fmt(y0[1])} in ${y0[0]} to ${fmt(y1[1])} in ${y1[0]} as the fields grew.` : `<b>The typical marathoner got faster.</b> The median went from ${fmt(y0[1])} in ${y0[0]} to ${fmt(y1[1])} in ${y1[0]}.`; $('#years').innerHTML = lineChart(yrs, { xfmt: String }); tip($('#years')); }
   $('#sources').innerHTML = (D.sources || []).map(s => `<li>${esc(s)}</li>`).join('');
   document.querySelectorAll('[data-n=all]').forEach(e => e.textContent = num(D.n));
 }
