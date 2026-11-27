@@ -20,7 +20,7 @@
     <a class="home" href="/">utkarshagarwal.dev</a>
     <span class="name">Splits</span>
     <nav>
-      <a href="#ghost">Ghost race</a><a href="#fields">Fields</a><a href="#paces">Paces</a><a href="#plan">Race plan</a><a href="#data">Data</a>
+      <a href="#ghost">Ghost race</a><a href="#fields">Fields</a><a href="#goals">Goals</a><a href="#paces">Paces</a><a href="#plan">Race plan</a><a href="#data">Data</a>
       <a href="https://github.com/autkarsh025/splits">Source</a>
       <button id="theme" type="button">Night</button>
     </nav>
@@ -124,6 +124,28 @@
       <h2>What your time is worth at every distance</h2>
       <p class="sub">Equivalent performances from your best PR by VDOT (Daniels and Gilbert), with Riegel&rsquo;s formula as a second opinion. Your own PRs are marked.</p>
       <table class="results wide" id="equiv"><thead><tr><th>Distance</th><th class="r">VDOT</th><th class="r">Riegel</th><th class="r">Pace / km</th><th class="r">Pace / mile</th><th class="r">College club</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="sheet" id="goals">
+    <div class="in two">
+      <div>
+        <h2>Goal finder</h2>
+        <p class="sub">Pick where you want to rank. Splits works out the times that get you there at every distance and how far you are from each.</p>
+        <label class="goal">Faster than <output id="goal-out">90%</output> of <span id="goal-field">marathoners</span>
+          <input id="goal" type="range" min="50" max="99.9" step="0.1" value="90"></label>
+        <p class="goalhead" id="goal-head"></p>
+        <table class="results" id="goaltable"><thead><tr><th>Distance</th><th class="r">Goal</th><th class="r">You now</th><th class="r">To cut</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div>
+        <h2>Pace converter</h2>
+        <p class="sub">Type any pace or speed. Everything else, including finish times, follows.</p>
+        <div class="conv">
+          <label>Pace or speed <input id="conv-v" value="7:00" inputmode="decimal"></label>
+          <label>Unit <select id="conv-u"><option value="mi">min per mile</option><option value="km">min per km</option><option value="kmh">km/h</option><option value="mph">mph</option></select></label>
+        </div>
+        <table class="results" id="convtable"><tbody></tbody></table>
+      </div>
     </div>
   </section>
 

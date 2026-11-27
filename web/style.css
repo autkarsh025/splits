@@ -124,6 +124,16 @@ table.results .pl { font: 700 13px var(--cond); color: var(--mute) }
 .ctl button { background: var(--you); color: #141414; border: 0; border-radius: 3px; padding: 8px 16px; font: 800 18px var(--display); cursor: pointer }
 .ctl select { background: #1c1c1c; border: 1px solid #333; border-radius: 3px; color: #ddd; padding: 3px 6px }
 
+/* goal finder, converter */
+.goal { display: block; font: 800 clamp(26px, 2.6vw, 34px)/1.15 var(--display); margin: 6px 0 4px }
+.goal output { color: var(--track) }
+.goal input { display: block; width: 100%; margin-top: 12px; accent-color: var(--track); height: 28px }
+.goalhead { color: var(--ink2); margin: 6px 0 14px }
+.conv { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px }
+.conv label { display: flex; flex-direction: column; gap: 3px; font: 700 14px var(--cond); color: var(--ink2) }
+.conv input, .conv select { border: 1.5px solid var(--ink); border-radius: 3px; padding: 7px 9px; font: 700 20px var(--display); background: var(--paper); width: 170px }
+.conv select { font: 600 16px var(--text) }
+
 /* profile, weather, plan */
 .prof { display: grid; grid-template-columns: 120px minmax(0, 1fr) 70px; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--hair) }
 .prof .nm { font: 700 17px var(--cond) } .prof .bar { height: 14px; background: var(--wash); border-radius: 2px; position: relative }

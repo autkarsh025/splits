@@ -88,6 +88,12 @@ function wrFor(d) {
   return { t: predict(vdot(near.m, near.r.t), d.m), who: `${near.r.who.split(',')[0]}’s ${byId(near.id).label} WR, converted`, exact: false };
 }
 
+function ageGroup(age) {
+  const lo = Math.max(18, Math.min(78, 18 + 5 * Math.floor((age - 18) / 5)));
+  const k = `${S.sex}:${lo}`, e = D.age_q[k] || D.age_q[`all:${lo}`];
+  return e ? { lo, ...e } : null;
+}
+
 // ------------------------------------------------------------------ verdict
 function renderVerdict(A) {
   const b = A.best, sexWord = S.sex === 'men' ? 'men’s' : S.sex === 'women' ? 'women’s' : '';
@@ -112,7 +118,10 @@ function renderVerdict(A) {
     if (k5 && D.college[k5][gKey()]) { const c = D.college[k5][gKey()], t5 = predict(A.V, 5000); rows.push([pctTxt(fasterThan(c.q, t5)), `of ${num(c.n)} college club ${gKey() === 'M' ? 'men' : 'women'}’s 5K PRs`, `Using your 5K equivalent, ${fmt(t5)}`]); }
   }
   // age
-  if (S.age && D.age && D.age.length) {
+  const ag = S.age && D.age_q ? ageGroup(+S.age) : null;
+  if (ag) {
+    rows.push([pctTxt(fasterThan(ag.q, A.marathon)), `of ${S.sex === 'all' ? '' : S.sex + ' '}marathoners aged ${ag.lo}–${ag.lo + 4}`, `#${num(Math.max(1, Math.round((1 - fasterThan(ag.q, A.marathon) / 100) * ag.n)))} of ${num(ag.n)} in your age group`]);
+  } else if (S.age && D.age && D.age.length) {
     const a = +S.age, g = D.age.reduce((x, y) => (Math.abs(y[0] + 2 - a) < Math.abs(x[0] + 2 - a) ? y : x));
     const diff = g[1] - A.marathon;
     rows.push([`${diff >= 0 ? '' : '+'}${fmt(Math.abs(diff))}`, `${diff >= 0 ? 'faster' : 'slower'} than the median ${g[0]}–${g[0] + 4} year old marathoner`, `Median ${fmt(g[1])}, ${num(g[2])} finishers`]);
@@ -334,13 +343,40 @@ function renderData(A) {
   document.querySelectorAll('[data-n=all]').forEach(e => e.textContent = num(D.n));
 }
 
+function renderGoals(A) {
+  const p = +$('#goal').value, q = A.q, tM = timeAt(q, 1 - p / 100), Vg = vdot(42195, tM), N = A.N;
+  $('#goal-out').textContent = (p >= 99.95 ? '99.9' : p.toFixed(p >= 99 ? 1 : 0)) + '%';
+  $('#goal-field').textContent = S.sex === 'all' ? 'marathoners' : `${S.sex} marathoners`;
+  const ahead = A.V >= Vg;
+  $('#goal-head').innerHTML = `A <b>${fmt(tM)}</b> marathon, VDOT ${Vg.toFixed(1)}, about #${num(Math.max(1, Math.round((1 - p / 100) * N)))} of ${num(N)}. ` + (ahead ? '<b>You are already there.</b>' : `You need about <b>${((Vg / A.V - 1) * 100).toFixed(1)}%</b> more fitness.`);
+  const mine = Object.fromEntries(A.prs.map(x => [x.d.id, x]));
+  $('#goaltable tbody').innerHTML = DISTANCES.filter(d => d.m >= 1500).map(d => {
+    const g = predict(Vg, d.m), now = mine[d.id]?.s ?? predict(A.V, d.m), cut = now - g, dec = g < 600 ? 1 : 0;
+    return `<tr class="${mine[d.id] ? 'me' : ''}"><td>${d.label}</td><td class="r t">${fmt(g, dec)}</td><td class="r">${fmt(now, dec)}${mine[d.id] ? '' : '<span class="pl"> est.</span>'}</td><td class="r">${cut > 0 ? fmt(cut, dec) : '<span class="pl">done</span>'}</td></tr>`;
+  }).join('');
+}
+
+function renderConverter() {
+  const raw = $('#conv-v').value.trim(), u = $('#conv-u').value;
+  let mps = NaN;  // metres per second
+  if (u === 'mi' || u === 'km') { const s = parseTime(raw); if (s > 0) mps = (u === 'mi' ? MI : KM) / s; }
+  else { const v = parseFloat(raw); if (v > 0) mps = u === 'kmh' ? v / 3.6 : v * MI / 3600; }
+  if (!(mps > 0)) { $('#convtable').innerHTML = '<tr><td>Enter a pace like 7:00, or a speed like 12.5</td></tr>'; return; }
+  const rows = [
+    ['Pace per mile', fmt(MI / mps)], ['Pace per km', fmt(KM / mps)], ['Speed', `${(mps * 3.6).toFixed(2)} km/h`], ['Speed', `${(mps * 3600 / MI).toFixed(2)} mph`],
+    ['400 m lap', fmt(400 / mps, 1)], ['200 m', fmt(200 / mps, 1)],
+    ...['5k', '10k', 'half', 'marathon'].map(id => [`${byId(id).label} at this pace`, fmt(byId(id).m / mps)]),
+  ];
+  $('#convtable').innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td class="r t">${v}</td></tr>`).join('');
+}
+
 // ------------------------------------------------------------------ main loop
 let lastKey = '';
 function update() {
   const A = analyse();
   toHash();
   if (!A) { $('#v-head').textContent = 'Enter a race time to start.'; return; }
-  renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderPaces(A); renderWeather(A); renderPlan(A); renderData(A);
+  renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderWeather(A); renderPlan(A); renderData(A);
   const key = `${A.best.d.id}:${A.best.s}:${S.sex}`;
   if (key !== lastKey) { lastKey = key; setupGhost(A); }
 }
@@ -358,6 +394,8 @@ function wire() {
   $('#plan-time').oninput = e => { S.planTime = e.target.value; update(); };
   $('#plan-drift').oninput = e => { S.drift = +e.target.value; update(); };
   $('#tempf').oninput = $('#dewf').oninput = () => update();
+  $('#goal').oninput = () => update();
+  $('#conv-v').oninput = $('#conv-u').onchange = () => renderConverter();
   $('#print').onclick = () => window.print();
   const root = document.documentElement, th = $('#theme');
   const night = () => root.dataset.theme ? root.dataset.theme === 'night' : matchMedia('(prefers-color-scheme: dark)').matches;
