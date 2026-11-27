@@ -7,9 +7,9 @@
 <meta name="description" content="Rank any race time against 3.4 million real marathon finishes and college runners' PRs, get a race plan with checkpoint splits, and find your training paces.">
 <meta property="og:title" content="Splits">
 <meta property="og:description" content="How fast is your time, really? Real race data, a race plan builder, a ghost race against the world record, and training paces.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236f8ea8'/%3E%3Cpath d='M5 11h22M5 16h22M5 21h22' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23c8462b'/%3E%3Cpath d='M5 11h22M5 16h22M5 21h22' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Doto:wght@600..900&display=swap" rel="stylesheet">
 <script>try{const t=localStorage.getItem('splits-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -17,7 +17,7 @@
 <a class="skip" href="#panels">Skip to results</a>
 <header class="mast">
   <div class="in">
-    <a class="name" href="./"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6"/><path d="M4 8.5h16M4 12h16M4 15.5h16"/></svg>Splits</a>
+    <a class="name" href="./">Splits</a>
     <nav aria-label="Site">
       <a href="/">utkarshagarwal.dev</a>
       <a href="https://github.com/autkarsh025/splits">Source</a>
@@ -26,40 +26,53 @@
   </div>
 </header>
 
-<div class="in top">
-  <form class="entry" id="entry" autocomplete="off" aria-labelledby="title">
-    <h1 id="title">How fast is your time, really?</h1>
-    <p class="lede">Enter one or more recent race times. More races make the predictions and the race plan better.</p>
-    <div class="prhead" aria-hidden="true"><span>Race</span><span>Time</span></div>
-    <div id="prs"></div>
-    <button type="button" class="add" id="addpr">+ Add another race</button>
-    <div class="who">
-      <label>Compare me with
-        <select id="sex"><option value="all">Everyone</option><option value="men">Men</option><option value="women">Women</option></select>
-      </label>
-      <label><span>Age <span class="opt">(optional)</span></span><input id="age" type="number" min="10" max="90" inputmode="numeric"></label>
+<section class="track" aria-labelledby="title">
+  <div class="lanes" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
+  <div class="in hero">
+    <div class="pitch">
+      <h1 id="title">How fast is your time, really?</h1>
+      <p>Put in your races. Splits ranks them against <b data-n="all">3.4 million</b> real marathon finishes and thousands of college runners, races you against the world record, and writes your plan for the next one.</p>
+      <p class="examples"><span>Try one:</span><button type="button" data-preset="me">Utkarsh&rsquo;s PRs</button><button type="button" data-preset="sub3">A 2:59 marathon</button><button type="button" data-preset="first5k">A first 5K</button></p>
     </div>
-    <p class="examples"><span>Or try an example:</span><button type="button" data-preset="me">Utkarsh&rsquo;s PRs</button><button type="button" data-preset="sub3">a 2:59 marathon</button><button type="button" data-preset="first5k">a first 5K</button></p>
-  </form>
 
-  <section class="summary" aria-live="polite" aria-labelledby="v-head">
-    <p class="event" id="v-event"></p>
-    <h2 id="v-head">Enter a race time to start.</h2>
-    <ul class="ranks" id="ranks"></ul>
-    <div class="sumfoot">
-      <span>Fitness score (VDOT) <b id="vdot">&ndash;</b></span>
-      <button type="button" id="share" class="ghostbtn">Copy link to these results</button>
+    <form class="bib" id="entry" autocomplete="off" aria-label="Your race times">
+      <div class="pins" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="bibtop"><span>Splits</span><span>Your entry</span></div>
+      <div class="bibnum"><output id="vdot">&ndash;</output><span>fitness score<br>(VDOT)</span></div>
+      <div class="prhead" aria-hidden="true"><span>Race</span><span>Time</span></div>
+      <div id="prs"></div>
+      <button type="button" class="add" id="addpr">+ Add another race</button>
+      <div class="who">
+        <label>Compare me with
+          <select id="sex"><option value="all">Everyone</option><option value="men">Men</option><option value="women">Women</option></select>
+        </label>
+        <label><span>Age <span class="opt">(optional)</span></span><input id="age" type="number" min="10" max="90" inputmode="numeric"></label>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="scoreboard" aria-live="polite" aria-labelledby="v-head">
+  <div class="in sb-grid">
+    <div class="led" role="group" aria-label="Your results">
+      <div class="cell"><span class="k" id="sb-race">Your race</span><b id="sb-race-t">&ndash;</b></div>
+      <div class="cell"><span class="k">Marathon equivalent</span><b id="sb-mar">&ndash;</b></div>
+      <div class="cell"><span class="k">Faster than</span><b id="sb-pct">&ndash;</b><span class="of" id="sb-of"></span></div>
     </div>
-    <p class="fine" id="v-note"></p>
-  </section>
-</div>
+    <div class="sb-side">
+      <h2 id="v-head" class="sr">Enter a race time to start.</h2>
+      <ul class="ranks" id="ranks"></ul>
+      <div class="sumfoot"><button type="button" id="share" class="linkbtn">Copy a link to these results</button><span class="fine" id="v-note"></span></div>
+    </div>
+  </div>
+</section>
 
 <nav class="tabs" aria-label="Sections">
   <div class="in" role="tablist">
-    <button role="tab" id="tab-stand" aria-controls="p-stand" aria-selected="true">Where you stand</button>
-    <button role="tab" id="tab-plan" aria-controls="p-plan" aria-selected="false" tabindex="-1">Race plan</button>
-    <button role="tab" id="tab-train" aria-controls="p-train" aria-selected="false" tabindex="-1">Training and goals</button>
-    <button role="tab" id="tab-data" aria-controls="p-data" aria-selected="false" tabindex="-1">The data</button>
+    <button role="tab" id="tab-stand" aria-controls="p-stand" aria-selected="true"><i>1</i>Where you stand</button>
+    <button role="tab" id="tab-plan" aria-controls="p-plan" aria-selected="false" tabindex="-1"><i>2</i>Race plan</button>
+    <button role="tab" id="tab-train" aria-controls="p-train" aria-selected="false" tabindex="-1"><i>3</i>Training and goals</button>
+    <button role="tab" id="tab-data" aria-controls="p-data" aria-selected="false" tabindex="-1"><i>4</i>The data</button>
   </div>
 </nav>
 

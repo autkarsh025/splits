@@ -106,7 +106,11 @@ function ageGroup(age) {
 function renderVerdict(A) {
   const b = A.best, sexWord = S.sex === 'men' ? 'men’s' : S.sex === 'women' ? 'women’s' : '';
   $('#vdot').textContent = A.V.toFixed(1);
-  $('#v-event').textContent = A.prs.length > 1 ? `Based on your best race: ${b.d.label} in ${fmt(b.s)}` : `${b.d.label} in ${fmt(b.s)}`;
+  $('#sb-race').textContent = A.prs.length > 1 ? `Your best race: ${b.d.label}` : b.d.label;
+  $('#sb-race-t').textContent = fmt(b.s);
+  $('#sb-mar').textContent = fmt(A.marathon);
+  $('#sb-pct').textContent = pctTxt(A.pct);
+  $('#sb-of').textContent = `#${num(A.place)} of ${num(A.N)} ${sexWord} marathon finishes`;
   $('#v-head').innerHTML = b.d.id === 'marathon'
     ? `That is faster than <b>${pctTxt(A.pct)}</b> of the ${num(A.N)} ${sexWord} marathon finishes in the data.`
     : `That is worth about a <b>${fmt(A.marathon)}</b> marathon, faster than <b>${pctTxt(A.pct)}</b> of the ${num(A.N)} ${sexWord} marathon finishes in the data.`;
@@ -186,7 +190,7 @@ function drawTrack() {
   for (let i = 0; i <= lanes; i++) { stadium((R + i * lw) * scale); g.stroke(); }
   // finish line at the end of the home straight
   g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(cx + sx, cy + R * scale); g.lineTo(cx + sx, cy + outer * scale); g.stroke();
-  g.fillStyle = 'rgba(255,255,255,.9)'; g.font = `600 ${Math.max(9, 10 * scale / 2.4)}px ${css('--text')}`; g.textAlign = 'center';
+  g.fillStyle = 'rgba(255,255,255,.9)'; g.font = `600 ${Math.max(9, 10 * scale / 2.4)}px ${css('--f')}`; g.textAlign = 'center';
   for (let i = 1; i <= lanes; i++) g.fillText(String(i), cx + sx + 14, cy + (R + (i - .5) * lw) * scale + 4);
   // runners: counterclockwise, starting at the finish line
   const pos = (s, lane) => {
@@ -201,7 +205,7 @@ function drawTrack() {
   sorted.forEach(rn => {
     const s = Math.min(G.dist, G.dist * G.t / rn.t), [x, y] = pos(s, rn.lane);
     g.beginPath(); g.arc(x, y, rn.you ? 7.5 : 6, 0, 7); g.fillStyle = css(rn.c); g.fill(); g.lineWidth = 1.5; g.strokeStyle = 'rgba(0,0,0,.55)'; g.stroke();
-    if (rn.you || rn.name === 'World record') { const t = rn.you ? 'You' : 'WR'; g.font = `600 13px ${css('--text')}`; g.textAlign = 'left'; g.lineWidth = 3; g.strokeStyle = css('--paper'); g.strokeText(t, x + 10, y - 8); g.fillStyle = css('--ink'); g.fillText(t, x + 10, y - 8); }
+    if (rn.you || rn.name === 'World record') { const t = rn.you ? 'You' : 'WR'; g.font = `600 13px ${css('--f')}`; g.textAlign = 'left'; g.lineWidth = 3; g.strokeStyle = css('--paper'); g.strokeText(t, x + 10, y - 8); g.fillStyle = css('--ink'); g.fillText(t, x + 10, y - 8); }
   });
 }
 function board() {
@@ -228,7 +232,7 @@ function histogram(q, you, opts) {
   const bars = []; let mx = 0;
   for (let i = 0; i < n; i++) { const a = lo + i * bin, b = a + bin, v = cdf(b) - cdf(a); bars.push([a, b, v]); mx = Math.max(mx, v); }
   const P = { l: 6, r: 6, t: 26, b: 26 }, X = t => P.l + (t - lo) / (hi - lo) * (W - P.l - P.r), Y = v => H - P.b - v / mx * (H - P.t - P.b);
-  let s = bars.map(([a, b, v]) => `<rect x="${X(a) + .5}" y="${Y(v)}" width="${Math.max(1, X(b) - X(a) - 1)}" height="${H - P.b - Y(v)}" fill="${a >= you ? 'var(--track)' : 'var(--hair)'}" data-tip="${fmt(a)}&ndash;${fmt(b)}: ${(v * 100).toFixed(1)}% of finishers"/>`).join('');
+  let s = bars.map(([a, b, v]) => `<rect x="${X(a) + .5}" y="${Y(v)}" width="${Math.max(1, X(b) - X(a) - 1)}" height="${H - P.b - Y(v)}" fill="${a >= you ? 'var(--ink)' : 'var(--rule)'}" data-tip="${fmt(a)}&ndash;${fmt(b)}: ${(v * 100).toFixed(1)}% of finishers"/>`).join('');
   const ticks = opts.ticks.map(t => `<text x="${X(t)}" y="${H - 8}" text-anchor="middle">${fmt(t)}</text>`).join('');
   const yx = Math.max(P.l, Math.min(W - P.r, X(you)));
   s += `<line x1="${yx}" x2="${yx}" y1="${P.t - 8}" y2="${H - P.b}" stroke="var(--accent)" stroke-width="2.5"/><text class="lab" x="${yx + (yx > W * .7 ? -6 : 6)}" y="${P.t - 12}" text-anchor="${yx > W * .7 ? 'end' : 'start'}" >${esc(label)}</text>`;
@@ -238,7 +242,7 @@ function lineChart(pts, opts) {
   const { W = 400, H = 220, yfmt = fmt, xfmt = String, mark } = opts, xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
   const y0 = Math.min(...ys, mark ? mark[1] : Infinity) * .97, y1 = Math.max(...ys, mark ? mark[1] : -Infinity) * 1.02, x0 = Math.min(...xs), x1 = Math.max(...xs);
   const P = { l: 52, r: 10, t: 12, b: 24 }, X = x => P.l + (x - x0) / (x1 - x0 || 1) * (W - P.l - P.r), Y = y => P.t + (y1 - y) / (y1 - y0) * (H - P.t - P.b);
-  const grid = [0, .5, 1].map(f => { const v = y0 + (y1 - y0) * f; return `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--hair)"/><text x="${P.l - 6}" y="${Y(v) + 4}" text-anchor="end">${yfmt(v)}</text>`; }).join('');
+  const grid = [0, .5, 1].map(f => { const v = y0 + (y1 - y0) * f; return `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--rule)"/><text x="${P.l - 6}" y="${Y(v) + 4}" text-anchor="end">${yfmt(v)}</text>`; }).join('');
   const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('');
   const dots = pts.map(p => `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="9" fill="transparent" data-tip="${xfmt(p[0])}: ${yfmt(p[1])}${p[2] ? ` (${num(p[2])} finishers)` : ''}"/><circle cx="${X(p[0])}" cy="${Y(p[1])}" r="2.6" fill="var(--ink)" pointer-events="none"/>`).join('');
   const xt = [pts[0], pts[Math.floor(pts.length / 2)], pts[pts.length - 1]].map(p => `<text x="${X(p[0])}" y="${H - 6}" text-anchor="middle">${xfmt(p[0])}</text>`).join('');
@@ -248,7 +252,7 @@ function lineChart(pts, opts) {
 function hbars(rows, opts) {
   const { W = 400, rowH = 24, you } = opts, H = rows.length * rowH + 22, lo = Math.min(...rows.map(r => r[1]), you || Infinity) * .9, hi = Math.max(...rows.map(r => r[1])) * 1.01;
   const P = { l: 132 }, X = v => P.l + (v - lo) / (hi - lo) * (W - P.l - 46);
-  let s = rows.map(([n, v, extra], i) => `<g data-tip="${esc(n)}: median ${fmt(v)}${extra ? `, ${num(extra)} finishers` : ''}"><text x="${P.l - 8}" y="${i * rowH + 16}" text-anchor="end" style="fill:var(--ink2)">${esc(n)}</text><rect x="${P.l}" y="${i * rowH + 5}" width="${X(v) - P.l}" height="${rowH - 10}" rx="3" fill="var(--track)"/><text x="${X(v) + 5}" y="${i * rowH + 16}">${fmt(v)}</text></g>`).join('');
+  let s = rows.map(([n, v, extra], i) => `<g data-tip="${esc(n)}: median ${fmt(v)}${extra ? `, ${num(extra)} finishers` : ''}"><text x="${P.l - 8}" y="${i * rowH + 16}" text-anchor="end" style="fill:var(--ink2)">${esc(n)}</text><rect x="${P.l}" y="${i * rowH + 5}" width="${X(v) - P.l}" height="${rowH - 10}" fill="var(--ink)"/><text x="${X(v) + 5}" y="${i * rowH + 16}">${fmt(v)}</text></g>`).join('');
   if (you) s += `<line x1="${X(you)}" x2="${X(you)}" y1="0" y2="${rows.length * rowH + 2}" stroke="var(--accent)" stroke-width="2.5"/><text class="lab" x="${X(you)}" y="${rows.length * rowH + 16}" text-anchor="middle" >You ${fmt(you)}</text>`;
   return svg(W, H, s);
 }
@@ -272,7 +276,7 @@ function renderFields(A) {
   if (!seg.children.length) { seg.innerHTML = ['all', 'men', 'women'].map(k => `<button role="radio" data-f="${k}" aria-checked="${k === S.field}">${k === 'all' ? 'Everyone' : k[0].toUpperCase() + k.slice(1)}</button>`).join(''); seg.onclick = e => { const b = e.target.closest('button'); if (!b) return; S.field = b.dataset.f; update(); }; }
   seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', b.dataset.f === S.field));
   const q = D[S.field], n = S.field === 'men' ? D.n_men : S.field === 'women' ? D.n_women : D.n;
-  $('#dist-sub').textContent = `${num(n)} finishes, grouped by 5 minutes. The blue bars are the runners you would beat.`;
+  $('#dist-sub').textContent = `${num(n)} finishes, grouped by 5 minutes. The dark bars are the runners you would beat.`;
   $('#dist').innerHTML = histogram(q, A.marathon, { lo: 7200, hi: 25200, bin: 300, ticks: [7200, 10800, 14400, 18000, 21600, 25200], label: `You ${fmt(A.marathon)}` }); tip($('#dist'));
 }
 
@@ -283,7 +287,7 @@ function renderCollege(A) {
   if (!k) { $('#college-sub').textContent = 'College data unavailable.'; box.innerHTML = ''; }
   else {
     const both = ['M', 'F'].filter(g => D.college[k][g]);
-    $('#college-sub').textContent = `Best ${collegeLabel(k)} times of college club runners, 2023 to 2026${note}. You are the blue line.`;
+    $('#college-sub').textContent = `Best ${collegeLabel(k)} times of college club runners, 2023 to 2026${note}. You are the red line.`;
     box.innerHTML = both.map(g => { const c = D.college[k][g], lo = c.q[2], hi = c.q[196]; const span = hi - lo, bin = span / 40;
       return `<p class="pl" style="margin:10px 0 2px">${g === 'M' ? 'Men' : 'Women'}: ${num(c.n)} athletes, faster than ${pctTxt(fasterThan(c.q, t))}</p>` +
         histogram(c.q, t, { lo, hi, bin, H: 150, ticks: [lo, lo + span / 2, hi], label: `You ${fmt(t, t < 600 ? 1 : 0)}` }); }).join('');
@@ -411,7 +415,7 @@ let lastKey = '';
 function update() {
   const A = analyse();
   toHash();
-  if (!A) { $('#v-head').textContent = 'Enter a race time to start.'; return; }
+  if (!A) { $('#v-head').textContent = 'Enter a race time to start.'; ['#sb-race-t', '#sb-mar', '#sb-pct'].forEach(k => $(k).textContent = '–'); $('#sb-of').textContent = 'Enter a race time to start'; return; }
   renderVerdict(A); renderProfile(A); renderFields(A); renderCollege(A); renderEquiv(A); renderGoals(A); renderConverter(); renderPaces(A); renderRacePlan(A); renderData(A);
   const key = `${A.best.d.id}:${A.best.s}:${S.sex}`;
   if (key !== lastKey) { lastKey = key; setupGhost(A); }
