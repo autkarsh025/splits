@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Splits: how fast is your time, really?</title>
+<meta name="description" content="Rank any race time against 3.4 million real marathon finishes and college runners' PRs, race it against the world record, and get your training paces and race plan.">
+<meta property="og:title" content="Splits">
+<meta property="og:description" content="How fast is your time, really? Real race data, a ghost race against the world record, paces and plans.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23c8462b'/%3E%3Cpath d='M4 10h24M4 16h24M4 22h24' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800;900&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script>try{const t=localStorage.getItem('splits-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="mast">
+  <div class="in">
+    <a class="home" href="/">utkarshagarwal.dev</a>
+    <span class="name">Splits</span>
+    <nav>
+      <a href="#ghost">Ghost race</a><a href="#fields">Fields</a><a href="#paces">Paces</a><a href="#plan">Race plan</a><a href="#data">Data</a>
+      <a href="https://github.com/autkarsh025/splits">Source</a>
+      <button id="theme" type="button">Night</button>
+    </nav>
+  </div>
+</header>
+
+<section class="track" aria-labelledby="title">
+  <div class="lanes" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
+  <div class="in hero">
+    <div class="pitch">
+      <h1 id="title">Splits</h1>
+      <p>How fast is your time, really? Put in a race and see where it stands against <b data-n="all">3.4 million</b> real marathon finishes and thousands of college runners, race it against the world record, and get the paces to go faster.</p>
+      <p class="try">Try: <button data-preset="me">Utkarsh&rsquo;s high school PRs</button> <button data-preset="sub3">a 2:59 marathon</button> <button data-preset="first5k">a first 5K</button></p>
+    </div>
+
+    <form class="bib" id="bib" autocomplete="off" aria-label="Your race times">
+      <div class="pins" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="bibtop"><span>Splits</span><span>Official entry</span></div>
+      <div class="bibnum"><span class="lbl">VDOT</span><output id="vdot">0.0</output></div>
+      <div id="prs"></div>
+      <button type="button" class="add" id="addpr">Add another PR</button>
+      <div class="who">
+        <label>Rank against
+          <select id="sex"><option value="all">Everyone</option><option value="men">Men</option><option value="women">Women</option></select>
+        </label>
+        <label>Age <input id="age" type="number" min="10" max="90" inputmode="numeric" placeholder="optional"></label>
+      </div>
+      <div class="bibfoot"><span id="sharehint">Change anything; results update as you type.</span><button type="button" id="share">Copy link</button></div>
+    </form>
+  </div>
+</section>
+
+<main id="results">
+  <section class="sheet verdict" aria-live="polite">
+    <div class="in">
+      <p class="kicker" id="v-event"></p>
+      <h2 id="v-head"></h2>
+      <div class="ranks" id="ranks"></div>
+      <p class="fine" id="v-note"></p>
+    </div>
+  </section>
+
+  <section class="stadium" id="ghost" aria-labelledby="ghost-h">
+    <div class="in">
+      <div class="stad-head">
+        <h2 id="ghost-h">Ghost race</h2>
+        <p>You against the world record and the marathon field, run at even pace on a 400 m track. Every runner is on the same scale; longer races just take more laps.</p>
+      </div>
+      <div class="stad-grid">
+        <div class="oval"><canvas id="track" aria-label="Animated race on a 400 m track"></canvas></div>
+        <div class="board">
+          <div class="clock"><span class="lbl">Race clock</span><output id="clock">0:00</output><span class="lap" id="lap"></span></div>
+          <ol id="order"></ol>
+          <div class="ctl"><button type="button" id="play">Start race</button><label>Speed <select id="speed"><option value="0.6">Slow</option><option value="1" selected>Normal</option><option value="2">Fast</option></select></label></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet" id="profile-sec" hidden>
+    <div class="in">
+      <h2>Your PR profile</h2>
+      <p class="sub" id="profile-sub"></p>
+      <div id="profile"></div>
+    </div>
+  </section>
+
+  <section class="sheet" id="fields">
+    <div class="in two">
+      <div>
+        <h2>Where you would finish</h2>
+        <p class="sub" id="fields-sub"></p>
+        <table class="results" id="fieldtable"><thead><tr><th>Race</th><th>Years</th><th class="r">Your place</th><th class="r">Faster than</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div>
+        <h2>The whole field</h2>
+        <p class="sub" id="dist-sub"></p>
+        <div class="chart" id="dist"></div>
+        <div class="seg" id="distseg" role="radiogroup" aria-label="Field"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet" id="college-sec">
+    <div class="in two">
+      <div>
+        <h2>Against college runners</h2>
+        <p class="sub" id="college-sub"></p>
+        <div class="chart" id="college"></div>
+      </div>
+      <div>
+        <h2>High school benchmarks</h2>
+        <p class="sub">California&rsquo;s 2025 CIF State Cross Country Championships, Woodward Park, Fresno (5K). Official winning times from the CIF.</p>
+        <table class="results" id="hs"><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet" id="equiv-sec">
+    <div class="in">
+      <h2>What your time is worth at every distance</h2>
+      <p class="sub">Equivalent performances from your best PR by VDOT (Daniels and Gilbert), with Riegel&rsquo;s formula as a second opinion. Your own PRs are marked.</p>
+      <table class="results wide" id="equiv"><thead><tr><th>Distance</th><th class="r">VDOT</th><th class="r">Riegel</th><th class="r">Pace / km</th><th class="r">Pace / mile</th><th class="r">College club</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="sheet" id="paces">
+    <div class="in two">
+      <div>
+        <h2>Training paces</h2>
+        <p class="sub" id="paces-sub"></p>
+        <div class="seg" id="unitseg" role="radiogroup" aria-label="Units"><button role="radio" aria-checked="true" data-unit="km">Per km</button><button role="radio" aria-checked="false" data-unit="mi">Per mile</button></div>
+        <table class="results" id="pacetable"><tbody></tbody></table>
+      </div>
+      <div>
+        <h2>Weather</h2>
+        <p class="sub">Heat and humidity slow everyone down. Enter race-day conditions to see what to expect.</p>
+        <div class="wx">
+          <label>Temperature <input id="tempf" type="number" value="62" inputmode="numeric"><span>°F</span></label>
+          <label>Dew point <input id="dewf" type="number" value="50" inputmode="numeric"><span>°F</span></label>
+        </div>
+        <div class="wxout" id="wxout"></div>
+        <p class="fine">Rule of thumb on temperature plus dew point, widely used by coaches; it is an estimate, not a physiological model.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet" id="plan">
+    <div class="in">
+      <h2>Race plan</h2>
+      <div class="planctl">
+        <label>Race <select id="plan-dist"></select></label>
+        <label>Goal time <input id="plan-time" inputmode="numeric" placeholder="h:mm:ss"></label>
+        <label class="slide">Pacing <input id="plan-drift" type="range" min="-6" max="6" step="1" value="0"><output id="plan-drift-out">Even</output></label>
+        <div class="seg" id="planunit" role="radiogroup" aria-label="Split units"><button role="radio" aria-checked="true" data-unit="km">km</button><button role="radio" aria-checked="false" data-unit="mi">mile</button></div>
+        <button type="button" id="print">Print pace band</button>
+      </div>
+      <div class="planwrap"><div class="chart" id="planchart"></div><table class="results band" id="band"><thead><tr><th>Split</th><th class="r">Split time</th><th class="r">On the clock</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="sheet" id="data">
+    <div class="in">
+      <h2>What 3.4 million finishes say</h2>
+      <div class="three">
+        <figure><figcaption><b>The fields are not equal.</b> Median finish time by race; the same time places very differently depending on where you run it.</figcaption><div class="chart" id="racemed"></div></figure>
+        <figure><figcaption><b>Age barely matters until 50.</b> Median marathon time by age group, every finisher with a recorded age.</figcaption><div class="chart" id="agecurve"></div></figure>
+        <figure><figcaption><b>The typical marathoner has not got faster.</b> Median finish time per year in these races, 2000 to 2019.</figcaption><div class="chart" id="years"></div></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet method">
+    <div class="in two">
+      <div>
+        <h2>How it works</h2>
+        <p><b>Equivalent times.</b> Every time is converted to VDOT with the Daniels and Gilbert equations: the oxygen cost of running at your pace divided by the share of VO2max you can hold for that long. Inverting the same equations gives equivalent times at other distances and the training paces. Rankings against the marathon field use your time&rsquo;s marathon equivalent unless you entered a marathon.</p>
+        <p><b>Rankings.</b> Percentiles are read from the full distribution of finish times, not from averages. College rankings use each athlete&rsquo;s best time in that event.</p>
+        <p><b>Limits.</b> Marathon fields are self-selected, so beating 60% of them is better than beating 60% of all people. Equivalents assume you have trained for the distance. Course, weather and pacing move real results by minutes.</p>
+      </div>
+      <div>
+        <h2>Data</h2>
+        <ul class="sources" id="sources"></ul>
+        <p class="fine">World records as ratified by World Athletics, checked November 2026. Built by <a href="/">Utkarsh Agarwal</a>. <a href="https://github.com/autkarsh025/splits">Source code on GitHub</a>.</p>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="foot"><div class="in"><span>Splits</span><span>Data refreshed monthly from open race results.</span></div></footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

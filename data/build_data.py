@@ -113,8 +113,8 @@ def nrcd_events() -> dict:
     return tables
 
 
-EVENT_M = {"800m": 800, "1500m": 1500, "mile": 1609.344, "1 mile": 1609.344, "3000m": 3000, "5000m": 5000,
-           "10000m": 10000, "5k": 5000, "6k": 6000, "8k": 8000, "10k": 10000}
+EVENT_M = {"800m": 800, "1500m": 1500, "1600m": 1600, "mile": 1609.344, "3000m": 3000, "3200m": 3200, "5000m": 5000,
+           "6000m": 6000, "8000m": 8000, "10000m": 10000, "half marathon": 21097.5}
 
 
 def college(tables: dict) -> dict:
@@ -127,15 +127,16 @@ def college(tables: dict) -> dict:
     print("[nrcd] event names:", sorted(ev.unique())[:60])
     j["m"] = ev.map(EVENT_M)
     j["t"] = to_seconds(j["result_time"].astype(str))
-    j["sport"] = j["sport_name"].astype(str)
+    j["kind"] = np.where(j["sport_name"].astype(str).str.lower().str.contains("cross"), "xc",
+                         np.where(j["sport_name"].astype(str).str.lower().str.contains("road"), "road", "track"))
     j = j.dropna(subset=["m", "t", "athlete_id"])
     j = j[j["t"] > 60]
     out = {}
-    for (sport, m, g), grp in j.groupby(["sport", "m", "gender"]):
+    for (kind, m, g), grp in j.groupby(["kind", "m", "gender"]):
         best = grp.groupby("athlete_id")["t"].min()
-        if len(best) < 150:
+        if len(best) < 120:
             continue
-        key = f"{'xc' if 'cross' in sport.lower() else 'track'}:{int(round(m))}"
+        key = f"{kind}:{int(round(m))}"
         out.setdefault(key, {})[g] = {"n": int(len(best)), "q": [round(float(v), 2) for v in np.quantile(best.values, np.linspace(0, 1, 201))]}
     print("[nrcd] events kept:", {k: {g: v["n"] for g, v in d.items()} for k, d in out.items()})
     return out
