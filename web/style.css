@@ -451,3 +451,4 @@ body[data-state=ready] .teaser { display: none }
 }
 
 figure.wide { margin: 28px 0 0 } figure.wide figcaption { max-width: 60em; margin-bottom: 10px }
+.cal > .fine { margin: 0; padding: 8px 12px; border-top: 1px solid var(--rule) }

@@ -166,20 +166,20 @@ function renderVerdict(A) {
   // toughest field
   const fields = D.races.map(r => ({ r, p: fasterThan(r.q, A.marathon) })).sort((x, y) => x.p - y.p);
   const tough = fields[0];
-  rows.push([pctTxt(tough.p), `at ${tough.r.name}, the toughest field here`, `#${num(Math.max(1, Math.round((1 - tough.p / 100) * tough.r.n)))} of ${num(tough.r.n)}`]);
+  rows.push([pctTxt(tough.p), `of finishers at ${tough.r.name}, the toughest field here, are slower`, `#${num(Math.max(1, Math.round((1 - tough.p / 100) * tough.r.n)))} of ${num(tough.r.n)}`]);
   // college
   const ck = collegeKeyFor(b.d.m);
   if (ck && D.college[ck][gKey()]) {
     const c = D.college[ck][gKey()];
-    rows.push([pctTxt(fasterThan(c.q, atKey(ck, b.d.m, b.s))), `of ${num(c.n)} college club ${gKey() === 'M' ? 'men' : 'women'}’s ${collegeLabel(ck)} PRs`, Math.abs(keyM(ck) - b.d.m) < 1 ? 'National Running Club Database' : `Your time converted to ${num(keyM(ck))} m: ${fmt(atKey(ck, b.d.m, b.s), 1)}`]);
+    rows.push([pctTxt(fasterThan(c.q, atKey(ck, b.d.m, b.s))), `of ${num(c.n)} college club ${gKey() === 'M' ? 'men' : 'women'}’s ${collegeLabel(ck)} PRs are slower`, Math.abs(keyM(ck) - b.d.m) < 1 ? 'National Running Club Database' : `Your time converted to ${num(keyM(ck))} m: ${fmt(atKey(ck, b.d.m, b.s), 1)}`]);
   } else {
     const k5 = collegeKeyFor(5000);
-    if (k5 && D.college[k5][gKey()]) { const c = D.college[k5][gKey()], t5 = predict(A.V, 5000); rows.push([pctTxt(fasterThan(c.q, t5)), `of ${num(c.n)} college club ${gKey() === 'M' ? 'men' : 'women'}’s 5K PRs`, `Using your 5K equivalent, ${fmt(t5)}`]); }
+    if (k5 && D.college[k5][gKey()]) { const c = D.college[k5][gKey()], t5 = predict(A.V, 5000); rows.push([pctTxt(fasterThan(c.q, t5)), `of ${num(c.n)} college club ${gKey() === 'M' ? 'men' : 'women'}’s 5K PRs are slower`, `Using your 5K equivalent, ${fmt(t5)}`]); }
   }
   // age
   const ag = S.age && D.age_q ? ageGroup(+S.age) : null;
   if (ag) {
-    rows.push([pctTxt(fasterThan(ag.q, A.marathon)), `of ${S.sex === 'all' ? '' : S.sex + ' '}marathoners aged ${ag.lo}–${ag.lo + 4}`, `#${num(Math.max(1, Math.round((1 - fasterThan(ag.q, A.marathon) / 100) * ag.n)))} of ${num(ag.n)} in your age group`]);
+    rows.push([pctTxt(fasterThan(ag.q, A.marathon)), `of ${S.sex === 'all' ? '' : S.sex + ' '}marathoners aged ${ag.lo}–${ag.lo + 4} are slower`, `#${num(Math.max(1, Math.round((1 - fasterThan(ag.q, A.marathon) / 100) * ag.n)))} of ${num(ag.n)} in your age group`]);
   } else if (S.age && D.age && D.age.length) {
     const a = +S.age, g = D.age.reduce((x, y) => (Math.abs(y[0] + 2 - a) < Math.abs(x[0] + 2 - a) ? y : x));
     const diff = g[1] - A.marathon;
